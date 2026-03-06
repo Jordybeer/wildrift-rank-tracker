@@ -422,6 +422,13 @@ button {
   gap: 14px;
 }
 
+.wr-compactRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
 .wr-enemyLane,
 .wr-enemyTeam {
   display: grid;
@@ -686,6 +693,10 @@ button {
 
   .wr-enemyLane,
   .wr-enemyTeam {
+    grid-template-columns: 1fr;
+  }
+
+  .wr-compactRow {
     grid-template-columns: 1fr;
   }
 }
