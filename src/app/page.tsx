@@ -9,15 +9,25 @@ type Match = {
   win: boolean;
   k_d_a: string;
   lp_delta: number;
+  rank_tier: string;
   created_at: string;
   cumulativeLp?: number;
 };
 
 export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [statusType, setStatusType] = useState<'error' | 'success' | ''>('');
+
+  const [champion, setChampion] = useState('');
+  const [role, setRole] = useState('mid');
+  const [win, setWin] = useState(true);
+  const [kills, setKills] = useState('');
+  const [deaths, setDeaths] = useState('');
+  const [assists, setAssists] = useState('');
+  const [lpDelta, setLpDelta] = useState('');
+  const [rankTier, setRankTier] = useState('');
 
   useEffect(() => {
     fetchMatches();
@@ -47,57 +57,68 @@ export default function Dashboard() {
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    setUploading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
     setStatus('');
     setStatusType('');
 
-    const file = e.target.files[0];
-    const reader = new FileReader();
+    try {
+      const kda = `${kills}/${deaths}/${assists}`;
+      const parsedLpDelta = parseInt(lpDelta, 10);
 
-    reader.onloadend = async () => {
-      try {
-        const result = reader.result?.toString();
-        const base64Data = result?.split(',')[1];
-
-        if (!base64Data) {
-          setStatus('Could not read screenshot as base64.');
-          setStatusType('error');
-          setUploading(false);
-          return;
-        }
-
-        const res = await fetch('/api/parse-match', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: base64Data,
-            mimeType: file.type || 'image/jpeg',
-          }),
-        });
-
-        const payload = await res.json();
-
-        if (!res.ok) {
-          setStatus(payload.error || 'Parsing failed for an unknown reason.');
-          setStatusType('error');
-          setUploading(false);
-          return;
-        }
-
-        setStatus(`Logged ${payload.match.champion} successfully.`);
-        setStatusType('success');
-        await fetchMatches();
-      } catch (error: any) {
-        setStatus(error?.message || 'Unexpected upload error.');
+      if (isNaN(parsedLpDelta)) {
+        setStatus('LP Delta must be a number (e.g., 15 or -12).');
         setStatusType('error');
-      } finally {
-        setUploading(false);
+        setSubmitting(false);
+        return;
       }
-    };
 
-    reader.readAsDataURL(file);
+      if (!champion.trim()) {
+        setStatus('Champion name is required.');
+        setStatusType('error');
+        setSubmitting(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('matches')
+        .insert([
+          {
+            champion: champion.trim(),
+            role,
+            win,
+            k_d_a: kda,
+            lp_delta: parsedLpDelta,
+            rank_tier: rankTier.trim() || 'Unranked',
+          },
+        ])
+        .select();
+
+      if (error) {
+        setStatus(`Failed to log match: ${error.message}`);
+        setStatusType('error');
+        setSubmitting(false);
+        return;
+      }
+
+      setStatus(`Logged ${champion} successfully!`);
+      setStatusType('success');
+
+      setChampion('');
+      setKills('');
+      setDeaths('');
+      setAssists('');
+      setLpDelta('');
+      setRankTier('');
+
+      await fetchMatches();
+    } catch (error: any) {
+      setStatus(error?.message || 'Unexpected error.');
+      setStatusType('error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -105,26 +126,127 @@ export default function Dashboard() {
       <h1 className="text-3xl font-bold mb-8 text-blue-400">Wild Rift Tracker & Coach</h1>
 
       <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 mb-8">
-        <h2 className="text-xl mb-4 font-semibold">Upload Post-Match Screenshot</h2>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleUpload}
-          disabled={uploading}
-          className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
-        />
-        {uploading && <p className="text-blue-400 mt-4 animate-pulse">Analyzing screenshot with AI...</p>}
-        {status && (
-          <p className={`mt-4 text-sm ${statusType === 'error' ? 'text-red-400' : 'text-green-400'}`}>
-            {status}
-          </p>
-        )}
+        <h2 className="text-xl mb-4 font-semibold">Log Match Manually</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Champion</label>
+              <input
+                type="text"
+                value={champion}
+                onChange={(e) => setChampion(e.target.value)}
+                placeholder="e.g., Ahri"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Role</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="top">Top</option>
+                <option value="jungle">Jungle</option>
+                <option value="mid">Mid</option>
+                <option value="adc">ADC</option>
+                <option value="support">Support</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Kills</label>
+              <input
+                type="number"
+                value={kills}
+                onChange={(e) => setKills(e.target.value)}
+                placeholder="0"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Deaths</label>
+              <input
+                type="number"
+                value={deaths}
+                onChange={(e) => setDeaths(e.target.value)}
+                placeholder="0"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Assists</label>
+              <input
+                type="number"
+                value={assists}
+                onChange={(e) => setAssists(e.target.value)}
+                placeholder="0"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Win/Loss</label>
+              <select
+                value={win ? 'win' : 'loss'}
+                onChange={(e) => setWin(e.target.value === 'win')}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="win">Win</option>
+                <option value="loss">Loss</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">LP Change</label>
+              <input
+                type="text"
+                value={lpDelta}
+                onChange={(e) => setLpDelta(e.target.value)}
+                placeholder="e.g., 15 or -12"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Rank Tier</label>
+              <input
+                type="text"
+                value={rankTier}
+                onChange={(e) => setRankTier(e.target.value)}
+                placeholder="e.g., Diamond II"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors"
+          >
+            {submitting ? 'Logging...' : 'Log Match'}
+          </button>
+
+          {status && (
+            <p className={`text-sm ${statusType === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+              {status}
+            </p>
+          )}
+        </form>
       </div>
 
       <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 mb-8 h-96">
         <h2 className="text-xl mb-4 font-semibold">LP Progression</h2>
         {matches.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-500">No data yet. Upload a screenshot!</div>
+          <div className="h-full flex items-center justify-center text-gray-500">No data yet. Log your first match!</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={matches}>
@@ -140,21 +262,34 @@ export default function Dashboard() {
       <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
         <h2 className="text-xl mb-4 font-semibold">Recent Matches</h2>
         <div className="space-y-4">
-          {matches.slice().reverse().map((m, i) => (
-            <div key={i} className={`p-4 rounded-lg border ${m.win ? 'border-green-800 bg-green-900/20' : 'border-red-800 bg-red-900/20'} flex justify-between items-center`}>
-              <div>
-                <span className="font-bold text-lg">{m.champion}</span>
-                <span className="text-gray-400 ml-2 capitalize">({m.role})</span>
-                <div className="text-sm text-gray-500 mt-1">{new Date(m.created_at).toLocaleString()}</div>
-              </div>
-              <div className="text-right">
-                <div className="font-mono text-lg">{m.k_d_a}</div>
-                <div className={`font-bold ${m.lp_delta > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {m.lp_delta > 0 ? '+' : ''}{m.lp_delta} LP
+          {matches.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No matches logged yet.</p>
+          ) : (
+            matches
+              .slice()
+              .reverse()
+              .map((m, i) => (
+                <div
+                  key={i}
+                  className={`p-4 rounded-lg border ${
+                    m.win ? 'border-green-800 bg-green-900/20' : 'border-red-800 bg-red-900/20'
+                  } flex justify-between items-center`}
+                >
+                  <div>
+                    <span className="font-bold text-lg">{m.champion}</span>
+                    <span className="text-gray-400 ml-2 capitalize">({m.role})</span>
+                    <div className="text-sm text-gray-500 mt-1">{new Date(m.created_at).toLocaleString()}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-mono text-lg">{m.k_d_a}</div>
+                    <div className={`font-bold ${m.lp_delta > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {m.lp_delta > 0 ? '+' : ''}
+                      {m.lp_delta} LP
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              ))
+          )}
         </div>
       </div>
     </div>
