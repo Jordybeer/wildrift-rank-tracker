@@ -10,7 +10,21 @@ create table public.matches (
   notes text,
   my_support text,
   enemy_adc text,
-  enemy_support text
+  enemy_support text,
+  session_id uuid,
+  game_duration integer,
+  first_blood boolean,
+  turret_kills integer,
+  vision_score integer,
+  premade_with text,
+  enemy_top text,
+  enemy_jungle text,
+  enemy_mid text,
+  gold_earned integer,
+  damage_dealt integer,
+  damage_taken integer,
+  cs_at_10 integer,
+  objective_participation integer
 );
 
 alter table public.matches disable row level security;

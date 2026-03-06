@@ -14,6 +14,21 @@ type Match = {
   my_support?: string;
   enemy_adc?: string;
   enemy_support?: string;
+  session_id?: string;
+  game_duration?: number;
+  first_blood?: boolean;
+  turret_kills?: number;
+  vision_score?: number;
+  premade_with?: string;
+  enemy_top?: string;
+  enemy_jungle?: string;
+  enemy_mid?: string;
+  gold_earned?: number;
+  damage_dealt?: number;
+  damage_taken?: number;
+  cs_at_10?: number;
+  objective_participation?: number;
+  notes?: string;
   cumulativeMarks?: number;
 };
 
@@ -64,6 +79,76 @@ const SUPPORT_CHAMPIONS = [
   'Zilean',
 ];
 
+const TOP_CHAMPIONS = [
+  'Aatrox',
+  'Camille',
+  'Darius',
+  'Fiora',
+  'Garen',
+  'Gragas',
+  'Gwen',
+  'Irelia',
+  'Jax',
+  'Jayce',
+  'Kennen',
+  'Malphite',
+  'Nasus',
+  'Olaf',
+  'Pantheon',
+  'Renekton',
+  'Riven',
+  'Sett',
+  'Shen',
+  'Teemo',
+  'Wukong',
+  'Yasuo',
+];
+
+const JUNGLE_CHAMPIONS = [
+  'Amumu',
+  'Diana',
+  'Ekko',
+  'Evelynn',
+  'Graves',
+  'Jarvan IV',
+  'Kha\'Zix',
+  'Lee Sin',
+  'Master Yi',
+  'Nunu',
+  'Rammus',
+  'Rek\'Sai',
+  'Rengar',
+  'Shyvana',
+  'Vi',
+  'Warwick',
+  'Wukong',
+  'Xin Zhao',
+];
+
+const MID_CHAMPIONS = [
+  'Ahri',
+  'Akali',
+  'Akshan',
+  'Annie',
+  'Aurelion Sol',
+  'Brand',
+  'Cassiopeia',
+  'Diana',
+  'Fizz',
+  'Galio',
+  'Katarina',
+  'LeBlanc',
+  'Lux',
+  'Orianna',
+  'Syndra',
+  'Twisted Fate',
+  'Veigar',
+  'Viktor',
+  'Yasuo',
+  'Zed',
+  'Ziggs',
+];
+
 const RANK_TIERS = [
   { value: 'IRON_IV', label: 'Iron IV', marks: 5 },
   { value: 'IRON_III', label: 'Iron III', marks: 5 },
@@ -100,10 +185,10 @@ function getMaxMarks(tier: string): number {
 
 function friendlySupabaseMessage(message: string) {
   if (message.includes("Could not find the table 'public.matches'")) {
-    return 'Supabase table missing. Run the updated supabase/schema.sql in SQL Editor (not sandboxed query mode), then disable RLS on the matches table.';
+    return 'Supabase table missing. Run the updated supabase/schema.sql in SQL Editor, then disable RLS on the matches table.';
   }
   if (message.includes("column") && message.includes("does not exist")) {
-    return 'Database schema is outdated. Drop the matches table and run supabase/schema.sql again, or manually add missing columns via Table Editor.';
+    return 'Database schema is outdated. Drop the matches table and run the new supabase/schema.sql again, or manually add missing columns via Table Editor.';
   }
   return message;
 }
@@ -140,6 +225,10 @@ function StatStepper({
   );
 }
 
+function generateSessionId() {
+  return crypto.randomUUID();
+}
+
 export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -156,6 +245,21 @@ export default function Dashboard() {
   const [mySupport, setMySupport] = useState('');
   const [enemyAdc, setEnemyAdc] = useState('');
   const [enemySupport, setEnemySupport] = useState('');
+  const [enemyTop, setEnemyTop] = useState('');
+  const [enemyJungle, setEnemyJungle] = useState('');
+  const [enemyMid, setEnemyMid] = useState('');
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [gameDuration, setGameDuration] = useState(0);
+  const [firstBlood, setFirstBlood] = useState<boolean | null>(null);
+  const [turretKills, setTurretKills] = useState(0);
+  const [visionScore, setVisionScore] = useState(0);
+  const [premadeWith, setPremadeWith] = useState('');
+  const [goldEarned, setGoldEarned] = useState(0);
+  const [damageDealt, setDamageDealt] = useState(0);
+  const [damageTaken, setDamageTaken] = useState(0);
+  const [csAt10, setCsAt10] = useState(0);
+  const [objectiveParticipation, setObjectiveParticipation] = useState(0);
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     fetchMatches();
@@ -165,8 +269,13 @@ export default function Dashboard() {
     const totalMatches = matches.length;
     const wins = matches.filter((m) => m.win).length;
     const winRate = totalMatches ? Math.round((wins / totalMatches) * 100) : 0;
-    return { totalMatches, wins, winRate };
-  }, [matches]);
+    
+    const currentSessionMatches = sessionId ? matches.filter(m => m.session_id === sessionId) : [];
+    const sessionWins = currentSessionMatches.filter(m => m.win).length;
+    const sessionLosses = currentSessionMatches.length - sessionWins;
+    
+    return { totalMatches, wins, winRate, sessionWins, sessionLosses };
+  }, [matches, sessionId]);
 
   const laneStats = useMemo(() => {
     const withSupport = matches.filter((m) => m.my_support);
@@ -230,7 +339,21 @@ export default function Dashboard() {
       const latest = data[data.length - 1];
       setCurrentRank(latest.rank_tier);
       setCurrentMarks(latest.marks_in_division);
+      if (latest.session_id) {
+        setSessionId(latest.session_id);
+      }
     }
+  };
+
+  const handleStartSession = () => {
+    const newSessionId = generateSessionId();
+    setSessionId(newSessionId);
+    setStatus('New session started!');
+    setStatusType('success');
+    setTimeout(() => {
+      setStatus('');
+      setStatusType('');
+    }, 2000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -275,6 +398,21 @@ export default function Dashboard() {
           my_support: mySupport || null,
           enemy_adc: enemyAdc || null,
           enemy_support: enemySupport || null,
+          enemy_top: enemyTop || null,
+          enemy_jungle: enemyJungle || null,
+          enemy_mid: enemyMid || null,
+          session_id: sessionId,
+          game_duration: gameDuration || null,
+          first_blood: firstBlood,
+          turret_kills: turretKills || null,
+          vision_score: visionScore || null,
+          premade_with: premadeWith || null,
+          gold_earned: goldEarned || null,
+          damage_dealt: damageDealt || null,
+          damage_taken: damageTaken || null,
+          cs_at_10: csAt10 || null,
+          objective_participation: objectiveParticipation || null,
+          notes: notes || null,
         },
       ]);
 
@@ -296,6 +434,19 @@ export default function Dashboard() {
       setMySupport('');
       setEnemyAdc('');
       setEnemySupport('');
+      setEnemyTop('');
+      setEnemyJungle('');
+      setEnemyMid('');
+      setGameDuration(0);
+      setFirstBlood(null);
+      setTurretKills(0);
+      setVisionScore(0);
+      setGoldEarned(0);
+      setDamageDealt(0);
+      setDamageTaken(0);
+      setCsAt10(0);
+      setObjectiveParticipation(0);
+      setNotes('');
       await fetchMatches();
     } catch (error: any) {
       setStatus(error?.message || 'Unexpected error.');
@@ -334,6 +485,14 @@ export default function Dashboard() {
             </strong>
           </div>
         </div>
+        {sessionId && (
+          <div className="wr-sessionBanner">
+            <span>🎮 Session active</span>
+            <span className="wr-sessionRecord">
+              {stats.sessionWins}W - {stats.sessionLosses}L
+            </span>
+          </div>
+        )}
       </section>
 
       <section className="wr-card">
@@ -344,6 +503,12 @@ export default function Dashboard() {
           </div>
           <div className="wr-rolePill">Role locked: ADC</div>
         </div>
+
+        {!sessionId && (
+          <button type="button" onClick={handleStartSession} className="wr-secondaryButton">
+            Start gaming session
+          </button>
+        )}
 
         <form onSubmit={handleSubmit} className="wr-form">
           <div>
@@ -408,8 +573,60 @@ export default function Dashboard() {
           </div>
 
           <details className="wr-details">
+            <summary className="wr-label">Game timing & performance</summary>
+            <div className="wr-detailsContent">
+              <StatStepper label="Duration (min)" value={gameDuration} onChange={setGameDuration} />
+              
+              <div className="wr-segmentWrap">
+                <span className="wr-label">First blood</span>
+                <div className="wr-segment wr-segmentThree">
+                  <button type="button" className={`wr-segmentButton ${firstBlood === true ? 'is-selected' : ''}`} onClick={() => setFirstBlood(true)}>
+                    Got it
+                  </button>
+                  <button type="button" className={`wr-segmentButton ${firstBlood === false ? 'is-selected' : ''}`} onClick={() => setFirstBlood(false)}>
+                    Gave it
+                  </button>
+                  <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>
+                    —
+                  </button>
+                </div>
+              </div>
+
+              <div className="wr-stepperGrid">
+                <StatStepper label="Turrets" value={turretKills} onChange={setTurretKills} />
+                <StatStepper label="Vision" value={visionScore} onChange={setVisionScore} />
+                <StatStepper label="CS@10" value={csAt10} onChange={setCsAt10} />
+              </div>
+
+              <StatStepper label="Obj participation" value={objectiveParticipation} onChange={setObjectiveParticipation} />
+            </div>
+          </details>
+
+          <details className="wr-details">
+            <summary className="wr-label">Post-game stats (optional)</summary>
+            <div className="wr-detailsContent">
+              <div className="wr-stepperGrid">
+                <StatStepper label="Gold (k)" value={goldEarned} onChange={setGoldEarned} />
+                <StatStepper label="Dmg dealt (k)" value={damageDealt} onChange={setDamageDealt} />
+                <StatStepper label="Dmg taken (k)" value={damageTaken} onChange={setDamageTaken} />
+              </div>
+            </div>
+          </details>
+
+          <details className="wr-details">
             <summary className="wr-label">Lane matchup (optional)</summary>
             <div className="wr-detailsContent">
+              <div>
+                <label className="wr-label">Premade with</label>
+                <input
+                  type="text"
+                  value={premadeWith}
+                  onChange={(e) => setPremadeWith(e.target.value)}
+                  placeholder="Friend's name or 'solo'"
+                  className="wr-input"
+                />
+              </div>
+
               <div>
                 <label className="wr-label">My support</label>
                 <select value={mySupport} onChange={(e) => setMySupport(e.target.value)} className="wr-select">
@@ -421,28 +638,71 @@ export default function Dashboard() {
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="wr-label">Enemy ADC</label>
-                <select value={enemyAdc} onChange={(e) => setEnemyAdc(e.target.value)} className="wr-select">
-                  <option value="">—</option>
-                  {ADC_CHAMPIONS.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
+                <label className="wr-label">Enemy bot lane</label>
+                <div className="wr-enemyLane">
+                  <select value={enemyAdc} onChange={(e) => setEnemyAdc(e.target.value)} className="wr-select">
+                    <option value="">ADC</option>
+                    {ADC_CHAMPIONS.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <select value={enemySupport} onChange={(e) => setEnemySupport(e.target.value)} className="wr-select">
+                    <option value="">Support</option>
+                    {SUPPORT_CHAMPIONS.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
+
               <div>
-                <label className="wr-label">Enemy support</label>
-                <select value={enemySupport} onChange={(e) => setEnemySupport(e.target.value)} className="wr-select">
-                  <option value="">—</option>
-                  {SUPPORT_CHAMPIONS.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
+                <label className="wr-label">Enemy team (optional)</label>
+                <div className="wr-enemyTeam">
+                  <select value={enemyTop} onChange={(e) => setEnemyTop(e.target.value)} className="wr-select">
+                    <option value="">Top</option>
+                    {TOP_CHAMPIONS.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <select value={enemyJungle} onChange={(e) => setEnemyJungle(e.target.value)} className="wr-select">
+                    <option value="">Jungle</option>
+                    {JUNGLE_CHAMPIONS.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <select value={enemyMid} onChange={(e) => setEnemyMid(e.target.value)} className="wr-select">
+                    <option value="">Mid</option>
+                    {MID_CHAMPIONS.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
+            </div>
+          </details>
+
+          <details className="wr-details">
+            <summary className="wr-label">Notes</summary>
+            <div className="wr-detailsContent">
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g., 'tilted', 'hard carry', 'afk teammate'"
+                className="wr-textarea"
+                rows={3}
+              />
             </div>
           </details>
 
@@ -561,6 +821,7 @@ export default function Dashboard() {
                         <div className="wr-matchTop">
                           <strong>{match.champion}</strong>
                           <span className="wr-roleTag">ADC</span>
+                          {match.game_duration && <span className="wr-durationTag">{match.game_duration}m</span>}
                         </div>
                         {match.my_support && (
                           <div className="wr-matchLane">
@@ -572,10 +833,16 @@ export default function Dashboard() {
                             )}
                           </div>
                         )}
+                        {match.notes && <div className="wr-matchNotes">{match.notes}</div>}
                         <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
                       </div>
                       <div className="wr-matchRight">
                         <div className="wr-kda">{match.k_d_a}</div>
+                        {match.first_blood !== null && match.first_blood !== undefined && (
+                          <div className={`wr-firstBlood ${match.first_blood ? 'is-positive' : 'is-negative'}`}>
+                            {match.first_blood ? '🩸 FB' : '💀 Gave FB'}
+                          </div>
+                        )}
                         <div className="wr-marks">
                           {match.marks_in_division}/{getMaxMarks(match.rank_tier)}
                         </div>
