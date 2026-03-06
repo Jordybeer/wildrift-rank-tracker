@@ -27,6 +27,7 @@ const ADC_CHAMPIONS = [
   'Miss Fortune',
   'Samira',
   'Sivir',
+  'Smolder',
   'Tristana',
   'Twitch',
   'Varus',
@@ -39,7 +40,7 @@ const LP_PRESETS = [-20, -15, -10, 10, 15, 20];
 
 function friendlySupabaseMessage(message: string) {
   if (message.includes("Could not find the table 'public.matches'")) {
-    return 'Supabase table missing. Run supabase/schema.sql in the Supabase SQL Editor first.';
+    return 'Supabase table missing. Create the table manually in Supabase Table Editor: go to Table Editor, click New Table, name it "matches", then add these columns: champion (text), role (text), win (bool), k_d_a (text), lp_delta (int8), rank_tier (text), notes (text). Make sure RLS is disabled for testing.';
   }
   return message;
 }
