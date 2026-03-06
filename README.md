@@ -1,14 +1,14 @@
 # Wild Rift Rank Tracker & Coach
 
-A full-stack Next.js application that uses OpenAI's Vision API to automatically read your Wild Rift post-match screenshots, extract the stats (Champion, KDA, Win/Loss, LP Delta), and log them to a Supabase database. Includes a dashboard with Recharts to visualize your progression over time.
+A full-stack Next.js application that uses Google's free Gemini Vision API to automatically read your Wild Rift post-match screenshots, extract the stats (Champion, KDA, Win/Loss, LP Delta), and log them to a Supabase database. Includes a dashboard with Recharts to visualize your progression over time.
 
 ## 🚀 Stack
 
 - **Framework**: Next.js 14 (App Router)
 - **Styling**: Tailwind CSS
-- **Database**: Supabase
+- **Database**: Supabase (Free Tier)
 - **Charts**: Recharts
-- **AI/Parsing**: OpenAI GPT-4o Vision
+- **AI/Parsing**: Google Gemini 1.5 Flash (Free Tier)
 
 ## ⚙️ Setup Instructions
 
@@ -18,7 +18,7 @@ npm install
 ```
 
 ### 2. Database Setup (Supabase)
-1. Create a new project on [Supabase](https://supabase.com).
+1. Create a new free project on [Supabase](https://supabase.com).
 2. Go to the SQL Editor in your Supabase dashboard.
 3. Paste and run the SQL code found in `supabase/schema.sql`.
 
@@ -28,8 +28,10 @@ Create a `.env.local` file in the root directory:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-OPENAI_API_KEY=your_openai_api_key
+GEMINI_API_KEY=your_google_gemini_api_key
 ```
+
+*Note: You can get your free GEMINI_API_KEY from [Google AI Studio](https://aistudio.google.com/app/apikey).*
 
 ### 4. Run Locally
 ```bash
@@ -54,4 +56,4 @@ You can bypass the web app entirely and log games natively from iOS using the Sh
    - **Request Body**: Select JSON. Add a dictionary with Key: `imageBase64` and Value: `Encoded Media` (Select the variable from the previous step).
 6. Save the shortcut as **"Log WR Match"**.
 
-**How to use:** After a match, take a screenshot, tap the iOS Share button, and tap "Log WR Match". The image is sent to your Next.js API, parsed by GPT-4o, and saved to your database instantly.
+**How to use:** After a match, take a screenshot, tap the iOS Share button, and tap "Log WR Match". The image is sent to your Next.js API, parsed by Gemini, and saved to your database instantly.
