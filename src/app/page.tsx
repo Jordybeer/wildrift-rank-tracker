@@ -28,6 +28,9 @@ type Match = {
   damage_taken?: number;
   cs_at_10?: number;
   objective_participation?: number;
+  dragons_taken?: number;
+  barons_taken?: number;
+  heralds_taken?: number;
   notes?: string;
   cumulativeMarks?: number;
 };
@@ -252,6 +255,9 @@ ${match.cs_at_10 ? `- CS at 10 min: ${match.cs_at_10}` : ''}
 ${match.gold_earned ? `- Gold earned: ${match.gold_earned}k` : ''}
 ${match.damage_dealt ? `- Damage dealt: ${match.damage_dealt}k` : ''}
 ${match.damage_taken ? `- Damage taken: ${match.damage_taken}k` : ''}
+${match.dragons_taken ? `- Dragons secured: ${match.dragons_taken}` : ''}
+${match.barons_taken ? `- Barons secured: ${match.barons_taken}` : ''}
+${match.heralds_taken ? `- Heralds secured: ${match.heralds_taken}` : ''}
 ${match.objective_participation ? `- Objective participation: ${match.objective_participation}` : ''}
 ${match.premade_with ? `- Playing with: ${match.premade_with}` : ''}
 ${match.notes ? `- Player notes: ${match.notes}` : ''}
@@ -282,6 +288,11 @@ Provide honest, constructive feedback focused on improvement.`,
         damage_dealt: match.damage_dealt,
         damage_taken: match.damage_taken,
         objective_participation: match.objective_participation,
+      },
+      objectives: {
+        dragons_taken: match.dragons_taken,
+        barons_taken: match.barons_taken,
+        heralds_taken: match.heralds_taken,
       },
       premade_with: match.premade_with,
       notes: match.notes,
@@ -328,6 +339,9 @@ export default function Dashboard() {
   const [damageTaken, setDamageTaken] = useState(0);
   const [csAt10, setCsAt10] = useState(0);
   const [objectiveParticipation, setObjectiveParticipation] = useState(0);
+  const [dragonsTaken, setDragonsTaken] = useState(0);
+  const [baronsTaken, setBaronsTaken] = useState(0);
+  const [heraldsTaken, setHeraldsTaken] = useState(0);
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -481,6 +495,9 @@ export default function Dashboard() {
           damage_taken: damageTaken || null,
           cs_at_10: csAt10 || null,
           objective_participation: objectiveParticipation || null,
+          dragons_taken: dragonsTaken || null,
+          barons_taken: baronsTaken || null,
+          heralds_taken: heraldsTaken || null,
           notes: notes || null,
         },
       ]);
@@ -515,6 +532,9 @@ export default function Dashboard() {
       setDamageTaken(0);
       setCsAt10(0);
       setObjectiveParticipation(0);
+      setDragonsTaken(0);
+      setBaronsTaken(0);
+      setHeraldsTaken(0);
       setNotes('');
       await fetchMatches();
     } catch (error: any) {
@@ -665,6 +685,12 @@ export default function Dashboard() {
                 <StatStepper label="Turrets" value={turretKills} onChange={setTurretKills} />
                 <StatStepper label="Vision" value={visionScore} onChange={setVisionScore} />
                 <StatStepper label="CS@10" value={csAt10} onChange={setCsAt10} />
+              </div>
+
+              <div className="wr-stepperGrid">
+                <StatStepper label="Dragons" value={dragonsTaken} onChange={setDragonsTaken} />
+                <StatStepper label="Barons" value={baronsTaken} onChange={setBaronsTaken} />
+                <StatStepper label="Heralds" value={heraldsTaken} onChange={setHeraldsTaken} />
               </div>
 
               <StatStepper label="Obj participation" value={objectiveParticipation} onChange={setObjectiveParticipation} />

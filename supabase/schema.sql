@@ -24,7 +24,10 @@ create table public.matches (
   damage_dealt integer,
   damage_taken integer,
   cs_at_10 integer,
-  objective_participation integer
+  objective_participation integer,
+  dragons_taken integer,
+  barons_taken integer,
+  heralds_taken integer
 );
 
 alter table public.matches disable row level security;
