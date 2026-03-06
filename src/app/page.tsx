@@ -11,6 +11,9 @@ type Match = {
   lp_delta: number;
   rank_tier: string;
   created_at: string;
+  my_support?: string;
+  enemy_adc?: string;
+  enemy_support?: string;
   cumulativeLp?: number;
 };
 
@@ -36,11 +39,36 @@ const ADC_CHAMPIONS = [
   'Zeri',
 ];
 
+const SUPPORT_CHAMPIONS = [
+  'Alistar',
+  'Bard',
+  'Blitzcrank',
+  'Braum',
+  'Janna',
+  'Karma',
+  'Leona',
+  'Lulu',
+  'Lux',
+  'Morgana',
+  'Nami',
+  'Nautilus',
+  'Pyke',
+  'Rakan',
+  'Senna',
+  'Seraphine',
+  'Sona',
+  'Soraka',
+  'Tahm Kench',
+  'Thresh',
+  'Yuumi',
+  'Zilean',
+];
+
 const LP_PRESETS = [-20, -15, -10, 10, 15, 20];
 
 function friendlySupabaseMessage(message: string) {
   if (message.includes("Could not find the table 'public.matches'")) {
-    return 'Supabase table missing. Create the table manually in Supabase Table Editor: go to Table Editor, click New Table, name it "matches", then add these columns: champion (text), role (text), win (bool), k_d_a (text), lp_delta (int8), rank_tier (text), notes (text). Make sure RLS is disabled for testing.';
+    return 'Supabase table missing. Create the table manually in Supabase Table Editor or run supabase/schema.sql in SQL Editor, then disable RLS on the matches table.';
   }
   return message;
 }
@@ -90,6 +118,9 @@ export default function Dashboard() {
   const [assists, setAssists] = useState(0);
   const [lpDelta, setLpDelta] = useState<number | ''>('');
   const [rankTier, setRankTier] = useState('');
+  const [mySupport, setMySupport] = useState('');
+  const [enemyAdc, setEnemyAdc] = useState('');
+  const [enemySupport, setEnemySupport] = useState('');
 
   useEffect(() => {
     fetchMatches();
@@ -101,6 +132,47 @@ export default function Dashboard() {
     const totalLp = matches.reduce((sum, m) => sum + (m.lp_delta || 0), 0);
     const winRate = totalMatches ? Math.round((wins / totalMatches) * 100) : 0;
     return { totalMatches, wins, totalLp, winRate };
+  }, [matches]);
+
+  const laneStats = useMemo(() => {
+    const withSupport = matches.filter((m) => m.my_support);
+    const supportWinRates = new Map<string, { wins: number; total: number }>();
+    withSupport.forEach((m) => {
+      const key = m.my_support!;
+      const current = supportWinRates.get(key) || { wins: 0, total: 0 };
+      supportWinRates.set(key, {
+        wins: current.wins + (m.win ? 1 : 0),
+        total: current.total + 1,
+      });
+    });
+
+    const withEnemy = matches.filter((m) => m.enemy_adc || m.enemy_support);
+    const enemyWinRates = new Map<string, { wins: number; total: number }>();
+    withEnemy.forEach((m) => {
+      const key = `${m.enemy_adc || '?'} + ${m.enemy_support || '?'}`;
+      const current = enemyWinRates.get(key) || { wins: 0, total: 0 };
+      enemyWinRates.set(key, {
+        wins: current.wins + (m.win ? 1 : 0),
+        total: current.total + 1,
+      });
+    });
+
+    return {
+      supportWinRates: Array.from(supportWinRates.entries())
+        .map(([name, stats]) => ({
+          name,
+          winRate: Math.round((stats.wins / stats.total) * 100),
+          games: stats.total,
+        }))
+        .sort((a, b) => b.games - a.games),
+      enemyWinRates: Array.from(enemyWinRates.entries())
+        .map(([name, stats]) => ({
+          name,
+          winRate: Math.round((stats.wins / stats.total) * 100),
+          games: stats.total,
+        }))
+        .sort((a, b) => b.games - a.games),
+    };
   }, [matches]);
 
   const fetchMatches = async () => {
@@ -153,6 +225,9 @@ export default function Dashboard() {
           k_d_a: `${kills}/${deaths}/${assists}`,
           lp_delta: lpDelta,
           rank_tier: rankTier.trim() || 'Unranked',
+          my_support: mySupport || null,
+          enemy_adc: enemyAdc || null,
+          enemy_support: enemySupport || null,
         },
       ]);
 
@@ -172,6 +247,9 @@ export default function Dashboard() {
       setAssists(0);
       setLpDelta('');
       setRankTier('');
+      setMySupport('');
+      setEnemyAdc('');
+      setEnemySupport('');
       await fetchMatches();
     } catch (error: any) {
       setStatus(error?.message || 'Unexpected error.');
@@ -276,15 +354,54 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="wr-label">Rank tier</label>
+            <label className="wr-label">Rank tier (optional)</label>
             <input
               type="text"
               value={rankTier}
               onChange={(e) => setRankTier(e.target.value)}
-              placeholder="Optional · e.g. Diamond II"
+              placeholder="e.g. Diamond II"
               className="wr-input"
             />
           </div>
+
+          <details className="wr-details">
+            <summary className="wr-label">Lane matchup (optional)</summary>
+            <div className="wr-detailsContent">
+              <div>
+                <label className="wr-label">My support</label>
+                <select value={mySupport} onChange={(e) => setMySupport(e.target.value)} className="wr-select">
+                  <option value="">—</option>
+                  {SUPPORT_CHAMPIONS.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="wr-label">Enemy ADC</label>
+                <select value={enemyAdc} onChange={(e) => setEnemyAdc(e.target.value)} className="wr-select">
+                  <option value="">—</option>
+                  {ADC_CHAMPIONS.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="wr-label">Enemy support</label>
+                <select value={enemySupport} onChange={(e) => setEnemySupport(e.target.value)} className="wr-select">
+                  <option value="">—</option>
+                  {SUPPORT_CHAMPIONS.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </details>
 
           <button type="submit" disabled={submitting} className="wr-primaryButton">
             {submitting ? 'Saving match...' : 'Log match'}
@@ -329,6 +446,54 @@ export default function Dashboard() {
         <div className="wr-card">
           <div className="wr-cardHeader compact">
             <div>
+              <h2>Win rate with support</h2>
+              <p>How you perform with each support.</p>
+            </div>
+          </div>
+          <div className="wr-laneStatsList">
+            {laneStats.supportWinRates.length === 0 ? (
+              <div className="wr-emptyState">Log matches with support data first.</div>
+            ) : (
+              laneStats.supportWinRates.map((stat) => (
+                <div key={stat.name} className="wr-laneStatRow">
+                  <span className="wr-laneStatName">{stat.name}</span>
+                  <div className="wr-laneStatRight">
+                    <span className="wr-laneStatGames">{stat.games}G</span>
+                    <span className={`wr-laneStatWr ${stat.winRate >= 50 ? 'is-positive' : 'is-negative'}`}>{stat.winRate}%</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="wr-card">
+          <div className="wr-cardHeader compact">
+            <div>
+              <h2>Win rate vs enemy lane</h2>
+              <p>Your matchups against enemy duos.</p>
+            </div>
+          </div>
+          <div className="wr-laneStatsList">
+            {laneStats.enemyWinRates.length === 0 ? (
+              <div className="wr-emptyState">Log matches with enemy lane data first.</div>
+            ) : (
+              laneStats.enemyWinRates.map((stat) => (
+                <div key={stat.name} className="wr-laneStatRow">
+                  <span className="wr-laneStatName">{stat.name}</span>
+                  <div className="wr-laneStatRight">
+                    <span className="wr-laneStatGames">{stat.games}G</span>
+                    <span className={`wr-laneStatWr ${stat.winRate >= 50 ? 'is-positive' : 'is-negative'}`}>{stat.winRate}%</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="wr-card">
+          <div className="wr-cardHeader compact">
+            <div>
               <h2>Recent matches</h2>
               <p>Latest entries first.</p>
             </div>
@@ -347,6 +512,16 @@ export default function Dashboard() {
                         <strong>{match.champion}</strong>
                         <span className="wr-roleTag">ADC</span>
                       </div>
+                      {match.my_support && (
+                        <div className="wr-matchLane">
+                          w/ {match.my_support}
+                          {(match.enemy_adc || match.enemy_support) && (
+                            <>
+                              {' '}vs {match.enemy_adc || '?'} + {match.enemy_support || '?'}
+                            </>
+                          )}
+                        </div>
+                      )}
                       <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
                     </div>
                     <div className="wr-matchRight">

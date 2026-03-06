@@ -196,7 +196,8 @@ button {
 .wr-stepperButton,
 .wr-primaryButton,
 .wr-inlineInput,
-.wr-input {
+.wr-input,
+.wr-select {
   border: 1px solid var(--wr-border);
   outline: none;
 }
@@ -289,7 +290,8 @@ button {
 
 .wr-stepperValue,
 .wr-input,
-.wr-inlineInput {
+.wr-inlineInput,
+.wr-select {
   width: 100%;
   min-height: 52px;
   padding: 0 14px;
@@ -323,6 +325,32 @@ button {
 
 .wr-inlineInput {
   width: 112px;
+}
+
+.wr-details {
+  border: 1px solid var(--wr-border);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 16px;
+}
+
+.wr-details summary {
+  cursor: pointer;
+  margin-bottom: 0;
+  list-style: none;
+}
+
+.wr-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.wr-details[open] summary {
+  margin-bottom: 16px;
+}
+
+.wr-detailsContent {
+  display: grid;
+  gap: 14px;
 }
 
 .wr-primaryButton {
@@ -370,9 +398,50 @@ button {
   text-align: center;
 }
 
-.wr-historyList {
+.wr-historyList,
+.wr-laneStatsList {
   display: grid;
   gap: 12px;
+}
+
+.wr-laneStatRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--wr-border);
+}
+
+.wr-laneStatName {
+  color: #e2e8f0;
+  font-size: 15px;
+}
+
+.wr-laneStatRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wr-laneStatGames {
+  color: var(--wr-subtle);
+  font-size: 13px;
+}
+
+.wr-laneStatWr {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.wr-laneStatWr.is-positive {
+  color: var(--wr-green);
+}
+
+.wr-laneStatWr.is-negative {
+  color: var(--wr-red);
 }
 
 .wr-matchCard {
@@ -413,6 +482,12 @@ button {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+.wr-matchLane {
+  color: var(--wr-subtle);
+  font-size: 13px;
+  margin-bottom: 4px;
 }
 
 .wr-matchMeta {
