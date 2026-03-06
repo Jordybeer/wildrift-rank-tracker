@@ -229,6 +229,75 @@ function generateSessionId() {
   return crypto.randomUUID();
 }
 
+function exportMatchForAI(match: Match) {
+  const data = {
+    prompt: `You are a Diamond-level Wild Rift coach. Analyze this ADC match and provide:
+1. **Performance Summary**: Overall assessment (2-3 sentences)
+2. **Strengths**: What went well (bullet points)
+3. **Areas for Improvement**: Key mistakes or missed opportunities (bullet points)
+4. **Tactical Feedback**: Specific actionable advice for next game
+
+Match data:
+- Champion: ${match.champion}
+- Result: ${match.win ? 'Victory' : 'Defeat'}
+- KDA: ${match.k_d_a}
+- Duration: ${match.game_duration ? `${match.game_duration} minutes` : 'not recorded'}
+- Rank: ${RANK_TIERS.find(t => t.value === match.rank_tier)?.label}
+${match.my_support ? `- My support: ${match.my_support}` : ''}
+${match.enemy_adc || match.enemy_support ? `- Enemy lane: ${match.enemy_adc || '?'} + ${match.enemy_support || '?'}` : ''}
+${match.first_blood !== null && match.first_blood !== undefined ? `- First blood: ${match.first_blood ? 'Got it' : 'Gave it away'}` : ''}
+${match.turret_kills ? `- Turrets destroyed: ${match.turret_kills}` : ''}
+${match.vision_score ? `- Vision score: ${match.vision_score}` : ''}
+${match.cs_at_10 ? `- CS at 10 min: ${match.cs_at_10}` : ''}
+${match.gold_earned ? `- Gold earned: ${match.gold_earned}k` : ''}
+${match.damage_dealt ? `- Damage dealt: ${match.damage_dealt}k` : ''}
+${match.damage_taken ? `- Damage taken: ${match.damage_taken}k` : ''}
+${match.objective_participation ? `- Objective participation: ${match.objective_participation}` : ''}
+${match.premade_with ? `- Playing with: ${match.premade_with}` : ''}
+${match.notes ? `- Player notes: ${match.notes}` : ''}
+
+Provide honest, constructive feedback focused on improvement.`,
+    match_data: {
+      champion: match.champion,
+      result: match.win ? 'Victory' : 'Defeat',
+      kda: match.k_d_a,
+      rank: RANK_TIERS.find(t => t.value === match.rank_tier)?.label,
+      game_duration: match.game_duration,
+      first_blood: match.first_blood,
+      my_support: match.my_support,
+      enemy_lane: {
+        adc: match.enemy_adc,
+        support: match.enemy_support,
+      },
+      enemy_team: {
+        top: match.enemy_top,
+        jungle: match.enemy_jungle,
+        mid: match.enemy_mid,
+      },
+      stats: {
+        turret_kills: match.turret_kills,
+        vision_score: match.vision_score,
+        cs_at_10: match.cs_at_10,
+        gold_earned: match.gold_earned,
+        damage_dealt: match.damage_dealt,
+        damage_taken: match.damage_taken,
+        objective_participation: match.objective_participation,
+      },
+      premade_with: match.premade_with,
+      notes: match.notes,
+      timestamp: match.created_at,
+    },
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `match-${match.champion}-${new Date(match.created_at).toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -462,9 +531,9 @@ export default function Dashboard() {
     <main className="wr-shell">
       <section className="wr-hero">
         <div>
-          <div className="wr-badge">ADC only</div>
+          <div className="wr-badge">ADC only · quick log</div>
           <h1 className="wr-title">Wild Rift Tracker</h1>
-          <p className="wr-subtitle">Log matches fast. See what works.</p>
+          <p className="wr-subtitle">Apple-style, mobile-first, and much faster to fill in.</p>
         </div>
         <div className="wr-statGrid">
           <div className="wr-statCard">
@@ -499,20 +568,45 @@ export default function Dashboard() {
         <div className="wr-cardHeader">
           <div>
             <h2>Quick log</h2>
-            <p>Pick champ, result, done.</p>
+            <p>Tap a champ, set result, done.</p>
           </div>
-          <div className="wr-rolePill">ADC</div>
+          <div className="wr-rolePill">Role locked: ADC</div>
         </div>
 
         {!sessionId && (
           <button type="button" onClick={handleStartSession} className="wr-secondaryButton">
-            Start session
+            Start gaming session
           </button>
         )}
 
         <form onSubmit={handleSubmit} className="wr-form">
           <div>
-            <label className="wr-label">Champion</label>
+            <label className="wr-label">Current rank &amp; marks</label>
+            <div className="wr-rankPicker">
+              <select value={currentRank} onChange={(e) => setCurrentRank(e.target.value)} className="wr-select">
+                {RANK_TIERS.map((tier) => (
+                  <option key={tier.value} value={tier.value}>
+                    {tier.label}
+                  </option>
+                ))}
+              </select>
+              <div className="wr-marksInput">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={maxMarks}
+                  value={currentMarks}
+                  onChange={(e) => setCurrentMarks(Math.min(maxMarks, Math.max(0, Number(e.target.value) || 0)))}
+                  className="wr-input"
+                />
+                <span className="wr-marksLabel">/ {maxMarks} marks</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="wr-label">ADC champions</label>
             <div className="wr-chipGrid">
               {ADC_CHAMPIONS.map((name) => (
                 <button
@@ -533,23 +627,75 @@ export default function Dashboard() {
             <span className="wr-label">Result</span>
             <div className="wr-segment">
               <button type="button" className={`wr-segmentButton ${win ? 'is-selected' : ''}`} onClick={() => setWin(true)}>
-                Win
+                Victory
               </button>
               <button type="button" className={`wr-segmentButton ${!win ? 'is-selected' : ''}`} onClick={() => setWin(false)}>
-                Loss
+                Defeat
               </button>
             </div>
           </div>
 
           <div className="wr-stepperGrid">
-            <StatStepper label="K" value={kills} onChange={setKills} />
-            <StatStepper label="D" value={deaths} onChange={setDeaths} />
-            <StatStepper label="A" value={assists} onChange={setAssists} />
+            <StatStepper label="Kills" value={kills} onChange={setKills} />
+            <StatStepper label="Deaths" value={deaths} onChange={setDeaths} />
+            <StatStepper label="Assists" value={assists} onChange={setAssists} />
           </div>
 
           <details className="wr-details">
-            <summary className="wr-label">Lane matchup</summary>
+            <summary className="wr-label">Game timing & performance</summary>
             <div className="wr-detailsContent">
+              <StatStepper label="Duration (min)" value={gameDuration} onChange={setGameDuration} />
+              
+              <div className="wr-segmentWrap">
+                <span className="wr-label">First blood</span>
+                <div className="wr-segment wr-segmentThree">
+                  <button type="button" className={`wr-segmentButton ${firstBlood === true ? 'is-selected' : ''}`} onClick={() => setFirstBlood(true)}>
+                    Got it
+                  </button>
+                  <button type="button" className={`wr-segmentButton ${firstBlood === false ? 'is-selected' : ''}`} onClick={() => setFirstBlood(false)}>
+                    Gave it
+                  </button>
+                  <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>
+                    —
+                  </button>
+                </div>
+              </div>
+
+              <div className="wr-stepperGrid">
+                <StatStepper label="Turrets" value={turretKills} onChange={setTurretKills} />
+                <StatStepper label="Vision" value={visionScore} onChange={setVisionScore} />
+                <StatStepper label="CS@10" value={csAt10} onChange={setCsAt10} />
+              </div>
+
+              <StatStepper label="Obj participation" value={objectiveParticipation} onChange={setObjectiveParticipation} />
+            </div>
+          </details>
+
+          <details className="wr-details">
+            <summary className="wr-label">Post-game stats (optional)</summary>
+            <div className="wr-detailsContent">
+              <div className="wr-stepperGrid">
+                <StatStepper label="Gold (k)" value={goldEarned} onChange={setGoldEarned} />
+                <StatStepper label="Dmg dealt (k)" value={damageDealt} onChange={setDamageDealt} />
+                <StatStepper label="Dmg taken (k)" value={damageTaken} onChange={setDamageTaken} />
+              </div>
+            </div>
+          </details>
+
+          <details className="wr-details">
+            <summary className="wr-label">Lane matchup (optional)</summary>
+            <div className="wr-detailsContent">
+              <div>
+                <label className="wr-label">Premade with</label>
+                <input
+                  type="text"
+                  value={premadeWith}
+                  onChange={(e) => setPremadeWith(e.target.value)}
+                  placeholder="Friend's name or 'solo'"
+                  className="wr-input"
+                />
+              </div>
+
               <div>
                 <label className="wr-label">My support</label>
                 <select value={mySupport} onChange={(e) => setMySupport(e.target.value)} className="wr-select">
@@ -563,7 +709,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="wr-label">Enemy bot</label>
+                <label className="wr-label">Enemy bot lane</label>
                 <div className="wr-enemyLane">
                   <select value={enemyAdc} onChange={(e) => setEnemyAdc(e.target.value)} className="wr-select">
                     <option value="">ADC</option>
@@ -574,7 +720,7 @@ export default function Dashboard() {
                     ))}
                   </select>
                   <select value={enemySupport} onChange={(e) => setEnemySupport(e.target.value)} className="wr-select">
-                    <option value="">Sup</option>
+                    <option value="">Support</option>
                     {SUPPORT_CHAMPIONS.map((name) => (
                       <option key={name} value={name}>
                         {name}
@@ -583,51 +729,9 @@ export default function Dashboard() {
                   </select>
                 </div>
               </div>
-            </div>
-          </details>
-
-          <details className="wr-details">
-            <summary className="wr-label">Advanced stats</summary>
-            <div className="wr-detailsContent">
-              <div className="wr-compactRow">
-                <StatStepper label="Duration (m)" value={gameDuration} onChange={setGameDuration} />
-                <div className="wr-segmentWrap">
-                  <span className="wr-label">FB</span>
-                  <div className="wr-segment wr-segmentThree">
-                    <button type="button" className={`wr-segmentButton ${firstBlood === true ? 'is-selected' : ''}`} onClick={() => setFirstBlood(true)}>
-                      ✓
-                    </button>
-                    <button type="button" className={`wr-segmentButton ${firstBlood === false ? 'is-selected' : ''}`} onClick={() => setFirstBlood(false)}>
-                      ✗
-                    </button>
-                    <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>
-                      —
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="wr-stepperGrid">
-                <StatStepper label="Turrets" value={turretKills} onChange={setTurretKills} />
-                <StatStepper label="Vision" value={visionScore} onChange={setVisionScore} />
-                <StatStepper label="CS@10" value={csAt10} onChange={setCsAt10} />
-              </div>
-
-              <StatStepper label="Obj part." value={objectiveParticipation} onChange={setObjectiveParticipation} />
 
               <div>
-                <label className="wr-label">Premade</label>
-                <input
-                  type="text"
-                  value={premadeWith}
-                  onChange={(e) => setPremadeWith(e.target.value)}
-                  placeholder="Name or 'solo'"
-                  className="wr-input"
-                />
-              </div>
-
-              <div>
-                <label className="wr-label">Enemy team</label>
+                <label className="wr-label">Enemy team (optional)</label>
                 <div className="wr-enemyTeam">
                   <select value={enemyTop} onChange={(e) => setEnemyTop(e.target.value)} className="wr-select">
                     <option value="">Top</option>
@@ -638,7 +742,7 @@ export default function Dashboard() {
                     ))}
                   </select>
                   <select value={enemyJungle} onChange={(e) => setEnemyJungle(e.target.value)} className="wr-select">
-                    <option value="">Jg</option>
+                    <option value="">Jungle</option>
                     {JUNGLE_CHAMPIONS.map((name) => (
                       <option key={name} value={name}>
                         {name}
@@ -655,56 +759,24 @@ export default function Dashboard() {
                   </select>
                 </div>
               </div>
-
-              <div>
-                <label className="wr-label">Post-game (k)</label>
-                <div className="wr-stepperGrid">
-                  <StatStepper label="Gold" value={goldEarned} onChange={setGoldEarned} />
-                  <StatStepper label="Dmg" value={damageDealt} onChange={setDamageDealt} />
-                  <StatStepper label="Taken" value={damageTaken} onChange={setDamageTaken} />
-                </div>
-              </div>
-
-              <div>
-                <label className="wr-label">Notes</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="tilted, hard carry, afk..."
-                  className="wr-textarea"
-                  rows={2}
-                />
-              </div>
             </div>
           </details>
 
-          <div>
-            <label className="wr-label">Rank & marks</label>
-            <div className="wr-rankPicker">
-              <select value={currentRank} onChange={(e) => setCurrentRank(e.target.value)} className="wr-select">
-                {RANK_TIERS.map((tier) => (
-                  <option key={tier.value} value={tier.value}>
-                    {tier.label}
-                  </option>
-                ))}
-              </select>
-              <div className="wr-marksInput">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={maxMarks}
-                  value={currentMarks}
-                  onChange={(e) => setCurrentMarks(Math.min(maxMarks, Math.max(0, Number(e.target.value) || 0)))}
-                  className="wr-input"
-                />
-                <span className="wr-marksLabel">/ {maxMarks}</span>
-              </div>
+          <details className="wr-details">
+            <summary className="wr-label">Notes</summary>
+            <div className="wr-detailsContent">
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g., 'tilted', 'hard carry', 'afk teammate'"
+                className="wr-textarea"
+                rows={3}
+              />
             </div>
-          </div>
+          </details>
 
           <button type="submit" disabled={submitting} className="wr-primaryButton">
-            {submitting ? 'Logging...' : 'Log match'}
+            {submitting ? 'Saving match...' : 'Log match'}
           </button>
 
           {status && <div className={`wr-message ${statusType === 'error' ? 'is-error' : 'is-success'}`}>{status}</div>}
@@ -716,12 +788,12 @@ export default function Dashboard() {
           <div className="wr-cardHeader compact">
             <div>
               <h2>Mark progression</h2>
-              <p>Track over time</p>
+              <p>Your mark count over time.</p>
             </div>
           </div>
           <div className="wr-chartWrap">
             {matches.length === 0 ? (
-              <div className="wr-emptyState">No matches yet</div>
+              <div className="wr-emptyState">No matches yet.</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={matches}>
@@ -746,13 +818,13 @@ export default function Dashboard() {
         <div className="wr-card">
           <div className="wr-cardHeader compact">
             <div>
-              <h2>With support</h2>
-              <p>Win rate by duo</p>
+              <h2>Win rate with support</h2>
+              <p>How you perform with each support.</p>
             </div>
           </div>
           <div className="wr-laneStatsList">
             {laneStats.supportWinRates.length === 0 ? (
-              <div className="wr-emptyState">Log support data first</div>
+              <div className="wr-emptyState">Log matches with support data first.</div>
             ) : (
               laneStats.supportWinRates.map((stat) => (
                 <div key={stat.name} className="wr-laneStatRow">
@@ -770,13 +842,13 @@ export default function Dashboard() {
         <div className="wr-card">
           <div className="wr-cardHeader compact">
             <div>
-              <h2>Enemy lane</h2>
-              <p>Matchup win rates</p>
+              <h2>Win rate vs enemy lane</h2>
+              <p>Your matchups against enemy duos.</p>
             </div>
           </div>
           <div className="wr-laneStatsList">
             {laneStats.enemyWinRates.length === 0 ? (
-              <div className="wr-emptyState">Log enemy lane first</div>
+              <div className="wr-emptyState">Log matches with enemy lane data first.</div>
             ) : (
               laneStats.enemyWinRates.map((stat) => (
                 <div key={stat.name} className="wr-laneStatRow">
@@ -795,12 +867,12 @@ export default function Dashboard() {
           <div className="wr-cardHeader compact">
             <div>
               <h2>Recent matches</h2>
-              <p>Latest first</p>
+              <p>Latest entries first.</p>
             </div>
           </div>
           <div className="wr-historyList">
             {matches.length === 0 ? (
-              <div className="wr-emptyState">No matches yet</div>
+              <div className="wr-emptyState">No matches logged yet.</div>
             ) : (
               matches
                 .slice()
@@ -817,6 +889,7 @@ export default function Dashboard() {
                       <div>
                         <div className="wr-matchTop">
                           <strong>{match.champion}</strong>
+                          <span className="wr-roleTag">ADC</span>
                           {match.game_duration && <span className="wr-durationTag">{match.game_duration}m</span>}
                         </div>
                         {match.my_support && (
@@ -836,12 +909,20 @@ export default function Dashboard() {
                         <div className="wr-kda">{match.k_d_a}</div>
                         {match.first_blood !== null && match.first_blood !== undefined && (
                           <div className={`wr-firstBlood ${match.first_blood ? 'is-positive' : 'is-negative'}`}>
-                            {match.first_blood ? 'FB' : 'Gave'}
+                            {match.first_blood ? '🩸 FB' : '💀 Gave FB'}
                           </div>
                         )}
                         <div className="wr-marks">
                           {match.marks_in_division}/{getMaxMarks(match.rank_tier)}
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => exportMatchForAI(match)}
+                          className="wr-exportButton"
+                          title="Export for AI analysis"
+                        >
+                          🤖 Get AI feedback
+                        </button>
                       </div>
                     </div>
                   </article>
