@@ -129,6 +129,18 @@ button {
   letter-spacing: -0.03em;
 }
 
+.wr-rankDisplay {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wr-marksDisplay {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--wr-blue);
+}
+
 .wr-card {
   border-radius: 28px;
   padding: 18px;
@@ -182,6 +194,29 @@ button {
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+.wr-rankPicker {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.wr-marksInput {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wr-marksInput .wr-input {
+  width: 80px;
+}
+
+.wr-marksLabel {
+  color: var(--wr-subtle);
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 .wr-chipGrid {
@@ -445,11 +480,10 @@ button {
 }
 
 .wr-matchCard {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px;
+  flex-direction: column;
+  overflow: hidden;
   border-radius: 22px;
   border: 1px solid var(--wr-border);
   background: rgba(255,255,255,0.04);
@@ -461,6 +495,29 @@ button {
 
 .wr-matchCard.is-loss {
   background: rgba(251, 113, 133, 0.08);
+}
+
+.wr-championBanner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.12;
+  filter: blur(4px) saturate(0.5);
+  pointer-events: none;
+}
+
+.wr-matchContent {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+  z-index: 1;
 }
 
 .wr-matchTop {
@@ -505,18 +562,11 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-.wr-lp {
+.wr-marks {
   margin-top: 4px;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
-}
-
-.wr-lp.is-up {
-  color: var(--wr-green);
-}
-
-.wr-lp.is-down {
-  color: var(--wr-red);
+  color: var(--wr-blue);
 }
 
 @media (min-width: 980px) {
@@ -540,13 +590,17 @@ button {
     white-space: normal;
   }
 
-  .wr-matchCard {
+  .wr-matchContent {
     flex-direction: column;
     align-items: flex-start;
   }
 
   .wr-matchRight {
     text-align: left;
+  }
+
+  .wr-rankPicker {
+    grid-template-columns: 1fr;
   }
 }
 

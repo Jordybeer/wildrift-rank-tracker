@@ -8,13 +8,13 @@ type Match = {
   role: string;
   win: boolean;
   k_d_a: string;
-  lp_delta: number;
   rank_tier: string;
+  marks_in_division: number;
   created_at: string;
   my_support?: string;
   enemy_adc?: string;
   enemy_support?: string;
-  cumulativeLp?: number;
+  cumulativeMarks?: number;
 };
 
 const ADC_CHAMPIONS = [
@@ -64,11 +64,46 @@ const SUPPORT_CHAMPIONS = [
   'Zilean',
 ];
 
-const LP_PRESETS = [-20, -15, -10, 10, 15, 20];
+const RANK_TIERS = [
+  { value: 'IRON_IV', label: 'Iron IV', marks: 5 },
+  { value: 'IRON_III', label: 'Iron III', marks: 5 },
+  { value: 'IRON_II', label: 'Iron II', marks: 5 },
+  { value: 'IRON_I', label: 'Iron I', marks: 5 },
+  { value: 'BRONZE_IV', label: 'Bronze IV', marks: 5 },
+  { value: 'BRONZE_III', label: 'Bronze III', marks: 5 },
+  { value: 'BRONZE_II', label: 'Bronze II', marks: 5 },
+  { value: 'BRONZE_I', label: 'Bronze I', marks: 5 },
+  { value: 'SILVER_IV', label: 'Silver IV', marks: 5 },
+  { value: 'SILVER_III', label: 'Silver III', marks: 5 },
+  { value: 'SILVER_II', label: 'Silver II', marks: 5 },
+  { value: 'SILVER_I', label: 'Silver I', marks: 5 },
+  { value: 'GOLD_IV', label: 'Gold IV', marks: 5 },
+  { value: 'GOLD_III', label: 'Gold III', marks: 5 },
+  { value: 'GOLD_II', label: 'Gold II', marks: 5 },
+  { value: 'GOLD_I', label: 'Gold I', marks: 5 },
+  { value: 'EMERALD_IV', label: 'Emerald IV', marks: 5 },
+  { value: 'EMERALD_III', label: 'Emerald III', marks: 5 },
+  { value: 'EMERALD_II', label: 'Emerald II', marks: 5 },
+  { value: 'EMERALD_I', label: 'Emerald I', marks: 5 },
+  { value: 'DIAMOND_IV', label: 'Diamond IV', marks: 6 },
+  { value: 'DIAMOND_III', label: 'Diamond III', marks: 6 },
+  { value: 'DIAMOND_II', label: 'Diamond II', marks: 6 },
+  { value: 'DIAMOND_I', label: 'Diamond I', marks: 6 },
+  { value: 'MASTER', label: 'Master', marks: 8 },
+  { value: 'GRANDMASTER', label: 'Grandmaster', marks: 8 },
+  { value: 'CHALLENGER', label: 'Challenger', marks: 8 },
+];
+
+function getMaxMarks(tier: string): number {
+  return RANK_TIERS.find((t) => t.value === tier)?.marks || 5;
+}
 
 function friendlySupabaseMessage(message: string) {
   if (message.includes("Could not find the table 'public.matches'")) {
-    return 'Supabase table missing. Create the table manually in Supabase Table Editor or run supabase/schema.sql in SQL Editor, then disable RLS on the matches table.';
+    return 'Supabase table missing. Run the updated supabase/schema.sql in SQL Editor (not sandboxed query mode), then disable RLS on the matches table.';
+  }
+  if (message.includes("column") && message.includes("does not exist")) {
+    return 'Database schema is outdated. Drop the matches table and run supabase/schema.sql again, or manually add missing columns via Table Editor.';
   }
   return message;
 }
@@ -116,8 +151,8 @@ export default function Dashboard() {
   const [kills, setKills] = useState(0);
   const [deaths, setDeaths] = useState(0);
   const [assists, setAssists] = useState(0);
-  const [lpDelta, setLpDelta] = useState<number | ''>('');
-  const [rankTier, setRankTier] = useState('');
+  const [currentRank, setCurrentRank] = useState('DIAMOND_IV');
+  const [currentMarks, setCurrentMarks] = useState(2);
   const [mySupport, setMySupport] = useState('');
   const [enemyAdc, setEnemyAdc] = useState('');
   const [enemySupport, setEnemySupport] = useState('');
@@ -129,9 +164,8 @@ export default function Dashboard() {
   const stats = useMemo(() => {
     const totalMatches = matches.length;
     const wins = matches.filter((m) => m.win).length;
-    const totalLp = matches.reduce((sum, m) => sum + (m.lp_delta || 0), 0);
     const winRate = totalMatches ? Math.round((wins / totalMatches) * 100) : 0;
-    return { totalMatches, wins, totalLp, winRate };
+    return { totalMatches, wins, winRate };
   }, [matches]);
 
   const laneStats = useMemo(() => {
@@ -186,13 +220,16 @@ export default function Dashboard() {
       return;
     }
 
-    if (data) {
-      let currentLp = 0;
+    if (data && data.length > 0) {
+      let cumulativeMarks = 0;
       const chartData = data.map((m) => {
-        currentLp += m.lp_delta || 0;
-        return { ...m, cumulativeLp: currentLp };
+        cumulativeMarks = m.marks_in_division;
+        return { ...m, cumulativeMarks };
       });
       setMatches(chartData);
+      const latest = data[data.length - 1];
+      setCurrentRank(latest.rank_tier);
+      setCurrentMarks(latest.marks_in_division);
     }
   };
 
@@ -210,8 +247,18 @@ export default function Dashboard() {
         return;
       }
 
-      if (lpDelta === '') {
-        setStatus('Choose an LP change preset or enter one manually.');
+      const maxMarks = getMaxMarks(currentRank);
+      let newMarks = currentMarks + (win ? 1 : -1);
+
+      if (newMarks < 0) {
+        setStatus('You would demote. Change your rank tier manually first, then log the match.');
+        setStatusType('error');
+        setSubmitting(false);
+        return;
+      }
+
+      if (newMarks > maxMarks) {
+        setStatus(`You would rank up. Change your rank tier to the next division first, then log the match.`);
         setStatusType('error');
         setSubmitting(false);
         return;
@@ -223,8 +270,8 @@ export default function Dashboard() {
           role: 'adc',
           win,
           k_d_a: `${kills}/${deaths}/${assists}`,
-          lp_delta: lpDelta,
-          rank_tier: rankTier.trim() || 'Unranked',
+          rank_tier: currentRank,
+          marks_in_division: newMarks,
           my_support: mySupport || null,
           enemy_adc: enemyAdc || null,
           enemy_support: enemySupport || null,
@@ -238,15 +285,14 @@ export default function Dashboard() {
         return;
       }
 
-      setStatus(`Logged ${champion} successfully.`);
+      setStatus(`Logged ${champion} successfully. Marks: ${newMarks}/${maxMarks}`);
       setStatusType('success');
+      setCurrentMarks(newMarks);
       setChampion('');
       setWin(true);
       setKills(0);
       setDeaths(0);
       setAssists(0);
-      setLpDelta('');
-      setRankTier('');
       setMySupport('');
       setEnemyAdc('');
       setEnemySupport('');
@@ -258,6 +304,8 @@ export default function Dashboard() {
       setSubmitting(false);
     }
   };
+
+  const maxMarks = getMaxMarks(currentRank);
 
   return (
     <main className="wr-shell">
@@ -277,8 +325,13 @@ export default function Dashboard() {
             <strong>{stats.winRate}%</strong>
           </div>
           <div className="wr-statCard">
-            <span className="wr-statLabel">Net LP</span>
-            <strong>{stats.totalLp > 0 ? `+${stats.totalLp}` : stats.totalLp}</strong>
+            <span className="wr-statLabel">Current rank</span>
+            <strong className="wr-rankDisplay">
+              {RANK_TIERS.find((t) => t.value === currentRank)?.label}
+              <span className="wr-marksDisplay">
+                {currentMarks}/{maxMarks}
+              </span>
+            </strong>
           </div>
         </div>
       </section>
@@ -287,12 +340,37 @@ export default function Dashboard() {
         <div className="wr-cardHeader">
           <div>
             <h2>Quick log</h2>
-            <p>Tap a champ, set result, tap LP, done.</p>
+            <p>Tap a champ, set result, done.</p>
           </div>
           <div className="wr-rolePill">Role locked: ADC</div>
         </div>
 
         <form onSubmit={handleSubmit} className="wr-form">
+          <div>
+            <label className="wr-label">Current rank &amp; marks</label>
+            <div className="wr-rankPicker">
+              <select value={currentRank} onChange={(e) => setCurrentRank(e.target.value)} className="wr-select">
+                {RANK_TIERS.map((tier) => (
+                  <option key={tier.value} value={tier.value}>
+                    {tier.label}
+                  </option>
+                ))}
+              </select>
+              <div className="wr-marksInput">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={maxMarks}
+                  value={currentMarks}
+                  onChange={(e) => setCurrentMarks(Math.min(maxMarks, Math.max(0, Number(e.target.value) || 0)))}
+                  className="wr-input"
+                />
+                <span className="wr-marksLabel">/ {maxMarks} marks</span>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label className="wr-label">ADC champions</label>
             <div className="wr-chipGrid">
@@ -327,41 +405,6 @@ export default function Dashboard() {
             <StatStepper label="Kills" value={kills} onChange={setKills} />
             <StatStepper label="Deaths" value={deaths} onChange={setDeaths} />
             <StatStepper label="Assists" value={assists} onChange={setAssists} />
-          </div>
-
-          <div>
-            <label className="wr-label">LP change</label>
-            <div className="wr-chipRow">
-              {LP_PRESETS.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`wr-pill ${lpDelta === value ? 'is-selected' : ''}`}
-                  onClick={() => setLpDelta(value)}
-                >
-                  {value > 0 ? `+${value}` : value}
-                </button>
-              ))}
-              <input
-                type="number"
-                inputMode="numeric"
-                value={lpDelta}
-                onChange={(e) => setLpDelta(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="Custom"
-                className="wr-inlineInput"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="wr-label">Rank tier (optional)</label>
-            <input
-              type="text"
-              value={rankTier}
-              onChange={(e) => setRankTier(e.target.value)}
-              placeholder="e.g. Diamond II"
-              className="wr-input"
-            />
           </div>
 
           <details className="wr-details">
@@ -415,8 +458,8 @@ export default function Dashboard() {
         <div className="wr-card">
           <div className="wr-cardHeader compact">
             <div>
-              <h2>LP progression</h2>
-              <p>Your cumulative climb over time.</p>
+              <h2>Mark progression</h2>
+              <p>Your mark count over time.</p>
             </div>
           </div>
           <div className="wr-chartWrap">
@@ -436,7 +479,7 @@ export default function Dashboard() {
                       color: '#e2e8f0',
                     }}
                   />
-                  <Line type="monotone" dataKey="cumulativeLp" stroke="#60a5fa" strokeWidth={3} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="cumulativeMarks" stroke="#60a5fa" strokeWidth={3} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -507,28 +550,35 @@ export default function Dashboard() {
                 .reverse()
                 .map((match, index) => (
                   <article key={index} className={`wr-matchCard ${match.win ? 'is-win' : 'is-loss'}`}>
-                    <div>
-                      <div className="wr-matchTop">
-                        <strong>{match.champion}</strong>
-                        <span className="wr-roleTag">ADC</span>
-                      </div>
-                      {match.my_support && (
-                        <div className="wr-matchLane">
-                          w/ {match.my_support}
-                          {(match.enemy_adc || match.enemy_support) && (
-                            <>
-                              {' '}vs {match.enemy_adc || '?'} + {match.enemy_support || '?'}
-                            </>
-                          )}
+                    <div
+                      className="wr-championBanner"
+                      style={{
+                        backgroundImage: `url(https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-splashes/${match.champion.toLowerCase().replace(/[^a-z]/g, '')}/0.jpg)`,
+                      }}
+                    />
+                    <div className="wr-matchContent">
+                      <div>
+                        <div className="wr-matchTop">
+                          <strong>{match.champion}</strong>
+                          <span className="wr-roleTag">ADC</span>
                         </div>
-                      )}
-                      <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
-                    </div>
-                    <div className="wr-matchRight">
-                      <div className="wr-kda">{match.k_d_a}</div>
-                      <div className={`wr-lp ${match.lp_delta >= 0 ? 'is-up' : 'is-down'}`}>
-                        {match.lp_delta > 0 ? '+' : ''}
-                        {match.lp_delta} LP
+                        {match.my_support && (
+                          <div className="wr-matchLane">
+                            w/ {match.my_support}
+                            {(match.enemy_adc || match.enemy_support) && (
+                              <>
+                                {' '}vs {match.enemy_adc || '?'} + {match.enemy_support || '?'}
+                              </>
+                            )}
+                          </div>
+                        )}
+                        <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
+                      </div>
+                      <div className="wr-matchRight">
+                        <div className="wr-kda">{match.k_d_a}</div>
+                        <div className="wr-marks">
+                          {match.marks_in_division}/{getMaxMarks(match.rank_tier)}
+                        </div>
                       </div>
                     </div>
                   </article>
