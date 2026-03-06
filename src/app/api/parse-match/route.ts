@@ -34,9 +34,10 @@ export async function POST(req: Request) {
     }
 
     const effectiveMimeType = typeof mimeType === 'string' && mimeType.length > 0 ? mimeType : 'image/jpeg';
+    const model = 'gemini-2.0-flash';
 
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,13 +69,13 @@ export async function POST(req: Request) {
 
     if (!geminiResponse.ok) {
       const message = geminiPayload?.error?.message || `Gemini request failed with status ${geminiResponse.status}.`;
-      return NextResponse.json({ error: message }, { status: 500 });
+      return NextResponse.json({ error: `${message} (model: ${model})` }, { status: 500 });
     }
 
     const rawText = geminiPayload?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!rawText) {
-      return NextResponse.json({ error: 'Gemini returned no parseable text.' }, { status: 500 });
+      return NextResponse.json({ error: `Gemini returned no parseable text. (model: ${model})` }, { status: 500 });
     }
 
     const matchData = JSON.parse(cleanJson(rawText));
