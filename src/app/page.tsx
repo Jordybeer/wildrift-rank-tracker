@@ -182,7 +182,6 @@ const RANK_TIERS = [
   { value: 'CHALLENGER', label: 'Challenger', marks: 8 },
 ];
 
-// Data Dragon uses PascalCase keys with no spaces/apostrophes
 const DDRAGON_KEY_OVERRIDES: Record<string, string> = {
   "Kai'Sa": 'Kaisa',
   'Miss Fortune': 'MissFortune',
@@ -195,7 +194,6 @@ const DDRAGON_KEY_OVERRIDES: Record<string, string> = {
   'Tahm Kench': 'TahmKench',
   'Twisted Fate': 'TwistedFate',
   'Xin Zhao': 'XinZhao',
-  'Twisted Fate': 'TwistedFate',
 };
 
 function getChampionSplashUrl(champion: string): string {
@@ -217,6 +215,7 @@ function friendlySupabaseMessage(message: string) {
   return message;
 }
 
+// Stepper with clearable input — shows empty when value is 0, snaps back on blur
 function StatStepper({
   label,
   value,
@@ -226,22 +225,40 @@ function StatStepper({
   value: number;
   onChange: (next: number) => void;
 }) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (raw === '') {
+      onChange(0);
+      return;
+    }
+    const n = parseInt(raw, 10);
+    if (!isNaN(n) && n >= 0) onChange(n);
+  };
+
   return (
     <div className="wr-stepper">
       <span className="wr-label">{label}</span>
       <div className="wr-stepperControls">
-        <button type="button" className="wr-stepperButton" onClick={() => onChange(Math.max(0, value - 1))}>
+        <button
+          type="button"
+          className="wr-stepperButton"
+          onClick={() => onChange(Math.max(0, value - 1))}
+        >
           −
         </button>
         <input
-          type="number"
+          type="text"
           inputMode="numeric"
-          min={0}
-          value={value}
-          onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
+          value={value === 0 ? '' : String(value)}
+          placeholder="0"
+          onChange={handleChange}
           className="wr-stepperValue"
         />
-        <button type="button" className="wr-stepperButton" onClick={() => onChange(value + 1)}>
+        <button
+          type="button"
+          className="wr-stepperButton"
+          onClick={() => onChange(value + 1)}
+        >
           +
         </button>
       </div>
@@ -373,11 +390,9 @@ export default function Dashboard() {
     const totalMatches = matches.length;
     const wins = matches.filter((m) => m.win).length;
     const winRate = totalMatches ? Math.round((wins / totalMatches) * 100) : 0;
-    
     const currentSessionMatches = sessionId ? matches.filter(m => m.session_id === sessionId) : [];
     const sessionWins = currentSessionMatches.filter(m => m.win).length;
     const sessionLosses = currentSessionMatches.length - sessionWins;
-    
     return { totalMatches, wins, winRate, sessionWins, sessionLosses };
   }, [matches, sessionId]);
 
@@ -387,65 +402,41 @@ export default function Dashboard() {
     withSupport.forEach((m) => {
       const key = m.my_support!;
       const current = supportWinRates.get(key) || { wins: 0, total: 0 };
-      supportWinRates.set(key, {
-        wins: current.wins + (m.win ? 1 : 0),
-        total: current.total + 1,
-      });
+      supportWinRates.set(key, { wins: current.wins + (m.win ? 1 : 0), total: current.total + 1 });
     });
-
     const withEnemy = matches.filter((m) => m.enemy_adc || m.enemy_support);
     const enemyWinRates = new Map<string, { wins: number; total: number }>();
     withEnemy.forEach((m) => {
       const key = `${m.enemy_adc || '?'} + ${m.enemy_support || '?'}`;
       const current = enemyWinRates.get(key) || { wins: 0, total: 0 };
-      enemyWinRates.set(key, {
-        wins: current.wins + (m.win ? 1 : 0),
-        total: current.total + 1,
-      });
+      enemyWinRates.set(key, { wins: current.wins + (m.win ? 1 : 0), total: current.total + 1 });
     });
-
     return {
       supportWinRates: Array.from(supportWinRates.entries())
-        .map(([name, stats]) => ({
-          name,
-          winRate: Math.round((stats.wins / stats.total) * 100),
-          games: stats.total,
-        }))
+        .map(([name, stats]) => ({ name, winRate: Math.round((stats.wins / stats.total) * 100), games: stats.total }))
         .sort((a, b) => b.games - a.games),
       enemyWinRates: Array.from(enemyWinRates.entries())
-        .map(([name, stats]) => ({
-          name,
-          winRate: Math.round((stats.wins / stats.total) * 100),
-          games: stats.total,
-        }))
+        .map(([name, stats]) => ({ name, winRate: Math.round((stats.wins / stats.total) * 100), games: stats.total }))
         .sort((a, b) => b.games - a.games),
     };
   }, [matches]);
 
   const fetchMatches = async () => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
-
     const { data, error } = await supabase.from('matches').select('*').order('created_at', { ascending: true });
-
     if (error) {
       setStatus(friendlySupabaseMessage(error.message));
       setStatusType('error');
       return;
     }
-
     if (data && data.length > 0) {
       let cumulativeMarks = 0;
-      const chartData = data.map((m) => {
-        cumulativeMarks = m.marks_in_division;
-        return { ...m, cumulativeMarks };
-      });
+      const chartData = data.map((m) => { cumulativeMarks = m.marks_in_division; return { ...m, cumulativeMarks }; });
       setMatches(chartData);
       const latest = data[data.length - 1];
       setCurrentRank(latest.rank_tier);
       setCurrentMarks(latest.marks_in_division);
-      if (latest.session_id) {
-        setSessionId(latest.session_id);
-      }
+      if (latest.session_id) setSessionId(latest.session_id);
     }
   };
 
@@ -454,10 +445,7 @@ export default function Dashboard() {
     setSessionId(newSessionId);
     setStatus('New session started!');
     setStatusType('success');
-    setTimeout(() => {
-      setStatus('');
-      setStatusType('');
-    }, 2000);
+    setTimeout(() => { setStatus(''); setStatusType(''); }, 2000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -465,7 +453,6 @@ export default function Dashboard() {
     setSubmitting(true);
     setStatus('');
     setStatusType('');
-
     try {
       if (!champion) {
         setStatus('Pick your ADC champion first.');
@@ -473,90 +460,47 @@ export default function Dashboard() {
         setSubmitting(false);
         return;
       }
-
       const maxMarks = getMaxMarks(currentRank);
       let newMarks = currentMarks + (win ? 1 : -1);
-
       if (newMarks < 0) {
         setStatus('You would demote. Change your rank tier manually first, then log the match.');
         setStatusType('error');
         setSubmitting(false);
         return;
       }
-
       if (newMarks > maxMarks) {
-        setStatus(`You would rank up. Change your rank tier to the next division first, then log the match.`);
+        setStatus('You would rank up. Change your rank tier to the next division first, then log the match.');
         setStatusType('error');
         setSubmitting(false);
         return;
       }
-
-      const { error } = await supabase.from('matches').insert([
-        {
-          champion,
-          role: 'adc',
-          win,
-          k_d_a: `${kills}/${deaths}/${assists}`,
-          rank_tier: currentRank,
-          marks_in_division: newMarks,
-          my_support: mySupport || null,
-          enemy_adc: enemyAdc || null,
-          enemy_support: enemySupport || null,
-          enemy_top: enemyTop || null,
-          enemy_jungle: enemyJungle || null,
-          enemy_mid: enemyMid || null,
-          session_id: sessionId,
-          game_duration: gameDuration || null,
-          first_blood: firstBlood,
-          turret_kills: turretKills || null,
-          vision_score: visionScore || null,
-          premade_with: premadeWith || null,
-          gold_earned: goldEarned || null,
-          damage_dealt: damageDealt || null,
-          damage_taken: damageTaken || null,
-          cs_at_10: csAt10 || null,
-          objective_participation: objectiveParticipation || null,
-          dragons_taken: dragonsTaken || null,
-          barons_taken: baronsTaken || null,
-          heralds_taken: heraldsTaken || null,
-          notes: notes || null,
-        },
-      ]);
-
+      const { error } = await supabase.from('matches').insert([{
+        champion, role: 'adc', win,
+        k_d_a: `${kills}/${deaths}/${assists}`,
+        rank_tier: currentRank, marks_in_division: newMarks,
+        my_support: mySupport || null, enemy_adc: enemyAdc || null, enemy_support: enemySupport || null,
+        enemy_top: enemyTop || null, enemy_jungle: enemyJungle || null, enemy_mid: enemyMid || null,
+        session_id: sessionId, game_duration: gameDuration || null, first_blood: firstBlood,
+        turret_kills: turretKills || null, vision_score: visionScore || null, premade_with: premadeWith || null,
+        gold_earned: goldEarned || null, damage_dealt: damageDealt || null, damage_taken: damageTaken || null,
+        cs_at_10: csAt10 || null, objective_participation: objectiveParticipation || null,
+        dragons_taken: dragonsTaken || null, barons_taken: baronsTaken || null, heralds_taken: heraldsTaken || null,
+        notes: notes || null,
+      }]);
       if (error) {
         setStatus(friendlySupabaseMessage(error.message));
         setStatusType('error');
         setSubmitting(false);
         return;
       }
-
       setStatus(`Logged ${champion} successfully. Marks: ${newMarks}/${maxMarks}`);
       setStatusType('success');
       setCurrentMarks(newMarks);
-      setChampion('');
-      setWin(true);
-      setKills(0);
-      setDeaths(0);
-      setAssists(0);
-      setMySupport('');
-      setEnemyAdc('');
-      setEnemySupport('');
-      setEnemyTop('');
-      setEnemyJungle('');
-      setEnemyMid('');
-      setGameDuration(0);
-      setFirstBlood(null);
-      setTurretKills(0);
-      setVisionScore(0);
-      setGoldEarned(0);
-      setDamageDealt(0);
-      setDamageTaken(0);
-      setCsAt10(0);
-      setObjectiveParticipation(0);
-      setDragonsTaken(0);
-      setBaronsTaken(0);
-      setHeraldsTaken(0);
-      setNotes('');
+      setChampion(''); setWin(true); setKills(0); setDeaths(0); setAssists(0);
+      setMySupport(''); setEnemyAdc(''); setEnemySupport(''); setEnemyTop(''); setEnemyJungle(''); setEnemyMid('');
+      setGameDuration(0); setFirstBlood(null); setTurretKills(0); setVisionScore(0);
+      setGoldEarned(0); setDamageDealt(0); setDamageTaken(0); setCsAt10(0); setObjectiveParticipation(0);
+      setDragonsTaken(0); setBaronsTaken(0); setHeraldsTaken(0); setNotes('');
       await fetchMatches();
     } catch (error: any) {
       setStatus(error?.message || 'Unexpected error.');
@@ -577,70 +521,43 @@ export default function Dashboard() {
           <p className="wr-subtitle">Apple-style, mobile-first, and much faster to fill in.</p>
         </div>
         <div className="wr-statGrid">
-          <div className="wr-statCard">
-            <span className="wr-statLabel">Matches</span>
-            <strong>{stats.totalMatches}</strong>
-          </div>
-          <div className="wr-statCard">
-            <span className="wr-statLabel">Win rate</span>
-            <strong>{stats.winRate}%</strong>
-          </div>
+          <div className="wr-statCard"><span className="wr-statLabel">Matches</span><strong>{stats.totalMatches}</strong></div>
+          <div className="wr-statCard"><span className="wr-statLabel">Win rate</span><strong>{stats.winRate}%</strong></div>
           <div className="wr-statCard">
             <span className="wr-statLabel">Current rank</span>
             <strong className="wr-rankDisplay">
               {RANK_TIERS.find((t) => t.value === currentRank)?.label}
-              <span className="wr-marksDisplay">
-                {currentMarks}/{maxMarks}
-              </span>
+              <span className="wr-marksDisplay">{currentMarks}/{maxMarks}</span>
             </strong>
           </div>
         </div>
         {sessionId && (
           <div className="wr-sessionBanner">
             <span>🎮 Session active</span>
-            <span className="wr-sessionRecord">
-              {stats.sessionWins}W - {stats.sessionLosses}L
-            </span>
+            <span className="wr-sessionRecord">{stats.sessionWins}W - {stats.sessionLosses}L</span>
           </div>
         )}
       </section>
 
       <section className="wr-card">
         <div className="wr-cardHeader">
-          <div>
-            <h2>Quick log</h2>
-            <p>Tap a champ, set result, done.</p>
-          </div>
+          <div><h2>Quick log</h2><p>Tap a champ, set result, done.</p></div>
           <div className="wr-rolePill">Role locked: ADC</div>
         </div>
-
         {!sessionId && (
-          <button type="button" onClick={handleStartSession} className="wr-secondaryButton">
-            Start gaming session
-          </button>
+          <button type="button" onClick={handleStartSession} className="wr-secondaryButton">Start gaming session</button>
         )}
-
         <form onSubmit={handleSubmit} className="wr-form">
           <div>
             <label className="wr-label">Current rank &amp; marks</label>
             <div className="wr-rankPicker">
               <select value={currentRank} onChange={(e) => setCurrentRank(e.target.value)} className="wr-select">
-                {RANK_TIERS.map((tier) => (
-                  <option key={tier.value} value={tier.value}>
-                    {tier.label}
-                  </option>
-                ))}
+                {RANK_TIERS.map((tier) => <option key={tier.value} value={tier.value}>{tier.label}</option>)}
               </select>
               <div className="wr-marksInput">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={maxMarks}
-                  value={currentMarks}
+                <input type="number" inputMode="numeric" min={0} max={maxMarks} value={currentMarks}
                   onChange={(e) => setCurrentMarks(Math.min(maxMarks, Math.max(0, Number(e.target.value) || 0)))}
-                  className="wr-input"
-                />
+                  className="wr-input" />
                 <span className="wr-marksLabel">/ {maxMarks} marks</span>
               </div>
             </div>
@@ -650,13 +567,9 @@ export default function Dashboard() {
             <label className="wr-label">ADC champions</label>
             <div className="wr-chipGrid">
               {ADC_CHAMPIONS.map((name) => (
-                <button
-                  key={name}
-                  type="button"
+                <button key={name} type="button"
                   className={`wr-chip ${champion === name ? 'is-selected' : ''}`}
-                  onClick={() => setChampion(name)}
-                  aria-pressed={champion === name}
-                >
+                  onClick={() => setChampion(name)} aria-pressed={champion === name}>
                   <span className={`wr-check ${champion === name ? 'is-selected' : ''}`}>✓</span>
                   {name}
                 </button>
@@ -667,12 +580,8 @@ export default function Dashboard() {
           <div className="wr-segmentWrap">
             <span className="wr-label">Result</span>
             <div className="wr-segment">
-              <button type="button" className={`wr-segmentButton ${win ? 'is-selected' : ''}`} onClick={() => setWin(true)}>
-                Victory
-              </button>
-              <button type="button" className={`wr-segmentButton ${!win ? 'is-selected' : ''}`} onClick={() => setWin(false)}>
-                Defeat
-              </button>
+              <button type="button" className={`wr-segmentButton ${win ? 'is-selected' : ''}`} onClick={() => setWin(true)}>Victory</button>
+              <button type="button" className={`wr-segmentButton ${!win ? 'is-selected' : ''}`} onClick={() => setWin(false)}>Defeat</button>
             </div>
           </div>
 
@@ -683,37 +592,27 @@ export default function Dashboard() {
           </div>
 
           <details className="wr-details">
-            <summary className="wr-label">Game timing & performance</summary>
+            <summary className="wr-label">Game timing &amp; performance</summary>
             <div className="wr-detailsContent">
               <StatStepper label="Duration (min)" value={gameDuration} onChange={setGameDuration} />
-              
               <div className="wr-segmentWrap">
                 <span className="wr-label">First blood</span>
                 <div className="wr-segment wr-segmentThree">
-                  <button type="button" className={`wr-segmentButton ${firstBlood === true ? 'is-selected' : ''}`} onClick={() => setFirstBlood(true)}>
-                    Got it
-                  </button>
-                  <button type="button" className={`wr-segmentButton ${firstBlood === false ? 'is-selected' : ''}`} onClick={() => setFirstBlood(false)}>
-                    Gave it
-                  </button>
-                  <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>
-                    —
-                  </button>
+                  <button type="button" className={`wr-segmentButton ${firstBlood === true ? 'is-selected' : ''}`} onClick={() => setFirstBlood(true)}>Got it</button>
+                  <button type="button" className={`wr-segmentButton ${firstBlood === false ? 'is-selected' : ''}`} onClick={() => setFirstBlood(false)}>Gave it</button>
+                  <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>—</button>
                 </div>
               </div>
-
               <div className="wr-stepperGrid">
                 <StatStepper label="Turrets" value={turretKills} onChange={setTurretKills} />
                 <StatStepper label="Vision" value={visionScore} onChange={setVisionScore} />
                 <StatStepper label="CS@10" value={csAt10} onChange={setCsAt10} />
               </div>
-
               <div className="wr-stepperGrid">
                 <StatStepper label="Dragons" value={dragonsTaken} onChange={setDragonsTaken} />
                 <StatStepper label="Barons" value={baronsTaken} onChange={setBaronsTaken} />
                 <StatStepper label="Heralds" value={heraldsTaken} onChange={setHeraldsTaken} />
               </div>
-
               <StatStepper label="Obj participation" value={objectiveParticipation} onChange={setObjectiveParticipation} />
             </div>
           </details>
@@ -734,75 +633,43 @@ export default function Dashboard() {
             <div className="wr-detailsContent">
               <div>
                 <label className="wr-label">Premade with</label>
-                <input
-                  type="text"
-                  value={premadeWith}
-                  onChange={(e) => setPremadeWith(e.target.value)}
-                  placeholder="Friend's name or 'solo'"
-                  className="wr-input"
-                />
+                <input type="text" value={premadeWith} onChange={(e) => setPremadeWith(e.target.value)}
+                  placeholder="Friend's name or 'solo'" className="wr-input" />
               </div>
-
               <div>
                 <label className="wr-label">My support</label>
                 <select value={mySupport} onChange={(e) => setMySupport(e.target.value)} className="wr-select">
                   <option value="">—</option>
-                  {SUPPORT_CHAMPIONS.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
+                  {SUPPORT_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
                 </select>
               </div>
-
               <div>
                 <label className="wr-label">Enemy bot lane</label>
                 <div className="wr-enemyLane">
                   <select value={enemyAdc} onChange={(e) => setEnemyAdc(e.target.value)} className="wr-select">
                     <option value="">ADC</option>
-                    {ADC_CHAMPIONS.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
+                    {ADC_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
                   </select>
                   <select value={enemySupport} onChange={(e) => setEnemySupport(e.target.value)} className="wr-select">
                     <option value="">Support</option>
-                    {SUPPORT_CHAMPIONS.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
+                    {SUPPORT_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </div>
               </div>
-
               <div>
                 <label className="wr-label">Enemy team (optional)</label>
                 <div className="wr-enemyTeam">
                   <select value={enemyTop} onChange={(e) => setEnemyTop(e.target.value)} className="wr-select">
                     <option value="">Top</option>
-                    {TOP_CHAMPIONS.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
+                    {TOP_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
                   </select>
                   <select value={enemyJungle} onChange={(e) => setEnemyJungle(e.target.value)} className="wr-select">
                     <option value="">Jungle</option>
-                    {JUNGLE_CHAMPIONS.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
+                    {JUNGLE_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
                   </select>
                   <select value={enemyMid} onChange={(e) => setEnemyMid(e.target.value)} className="wr-select">
                     <option value="">Mid</option>
-                    {MID_CHAMPIONS.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
+                    {MID_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </div>
               </div>
@@ -812,49 +679,30 @@ export default function Dashboard() {
           <details className="wr-details">
             <summary className="wr-label">Notes</summary>
             <div className="wr-detailsContent">
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
                 placeholder="e.g., 'tilted', 'hard carry', 'afk teammate'"
-                className="wr-textarea"
-                rows={3}
-              />
+                className="wr-textarea" rows={3} />
             </div>
           </details>
 
           <button type="submit" disabled={submitting} className="wr-primaryButton">
             {submitting ? 'Saving match...' : 'Log match'}
           </button>
-
           {status && <div className={`wr-message ${statusType === 'error' ? 'is-error' : 'is-success'}`}>{status}</div>}
         </form>
       </section>
 
       <section className="wr-grid">
         <div className="wr-card">
-          <div className="wr-cardHeader compact">
-            <div>
-              <h2>Mark progression</h2>
-              <p>Your mark count over time.</p>
-            </div>
-          </div>
+          <div className="wr-cardHeader compact"><div><h2>Mark progression</h2><p>Your mark count over time.</p></div></div>
           <div className="wr-chartWrap">
-            {matches.length === 0 ? (
-              <div className="wr-emptyState">No matches yet.</div>
-            ) : (
+            {matches.length === 0 ? <div className="wr-emptyState">No matches yet.</div> : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={matches}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#263041" opacity={0.35} />
                   <XAxis dataKey="created_at" tickFormatter={(str) => new Date(str).toLocaleDateString()} stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 16,
-                      color: '#e2e8f0',
-                    }}
-                  />
+                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, color: '#e2e8f0' }} />
                   <Line type="monotone" dataKey="cumulativeMarks" stroke="#60a5fa" strokeWidth={3} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -863,16 +711,9 @@ export default function Dashboard() {
         </div>
 
         <div className="wr-card">
-          <div className="wr-cardHeader compact">
-            <div>
-              <h2>Win rate with support</h2>
-              <p>How you perform with each support.</p>
-            </div>
-          </div>
+          <div className="wr-cardHeader compact"><div><h2>Win rate with support</h2><p>How you perform with each support.</p></div></div>
           <div className="wr-laneStatsList">
-            {laneStats.supportWinRates.length === 0 ? (
-              <div className="wr-emptyState">Log matches with support data first.</div>
-            ) : (
+            {laneStats.supportWinRates.length === 0 ? <div className="wr-emptyState">Log matches with support data first.</div> : (
               laneStats.supportWinRates.map((stat) => (
                 <div key={stat.name} className="wr-laneStatRow">
                   <span className="wr-laneStatName">{stat.name}</span>
@@ -887,16 +728,9 @@ export default function Dashboard() {
         </div>
 
         <div className="wr-card">
-          <div className="wr-cardHeader compact">
-            <div>
-              <h2>Win rate vs enemy lane</h2>
-              <p>Your matchups against enemy duos.</p>
-            </div>
-          </div>
+          <div className="wr-cardHeader compact"><div><h2>Win rate vs enemy lane</h2><p>Your matchups against enemy duos.</p></div></div>
           <div className="wr-laneStatsList">
-            {laneStats.enemyWinRates.length === 0 ? (
-              <div className="wr-emptyState">Log matches with enemy lane data first.</div>
-            ) : (
+            {laneStats.enemyWinRates.length === 0 ? <div className="wr-emptyState">Log matches with enemy lane data first.</div> : (
               laneStats.enemyWinRates.map((stat) => (
                 <div key={stat.name} className="wr-laneStatRow">
                   <span className="wr-laneStatName">{stat.name}</span>
@@ -911,67 +745,43 @@ export default function Dashboard() {
         </div>
 
         <div className="wr-card">
-          <div className="wr-cardHeader compact">
-            <div>
-              <h2>Recent matches</h2>
-              <p>Latest entries first.</p>
-            </div>
-          </div>
+          <div className="wr-cardHeader compact"><div><h2>Recent matches</h2><p>Latest entries first.</p></div></div>
           <div className="wr-historyList">
-            {matches.length === 0 ? (
-              <div className="wr-emptyState">No matches logged yet.</div>
-            ) : (
-              matches
-                .slice()
-                .reverse()
-                .map((match, index) => (
-                  <article key={index} className={`wr-matchCard ${match.win ? 'is-win' : 'is-loss'}`}>
-                    <div
-                      className="wr-championBanner"
-                      style={{ backgroundImage: `url(${getChampionSplashUrl(match.champion)})` }}
-                    />
-                    <div className="wr-matchContent">
-                      <div>
-                        <div className="wr-matchTop">
-                          <strong>{match.champion}</strong>
-                          <span className="wr-roleTag">ADC</span>
-                          {match.game_duration && <span className="wr-durationTag">{match.game_duration}m</span>}
-                        </div>
-                        {match.my_support && (
-                          <div className="wr-matchLane">
-                            w/ {match.my_support}
-                            {(match.enemy_adc || match.enemy_support) && (
-                              <>
-                                {' '}vs {match.enemy_adc || '?'} + {match.enemy_support || '?'}
-                              </>
-                            )}
-                          </div>
-                        )}
-                        {match.notes && <div className="wr-matchNotes">{match.notes}</div>}
-                        <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
+            {matches.length === 0 ? <div className="wr-emptyState">No matches logged yet.</div> : (
+              matches.slice().reverse().map((match, index) => (
+                <article key={index} className={`wr-matchCard ${match.win ? 'is-win' : 'is-loss'}`}>
+                  <div className="wr-championBanner" style={{ backgroundImage: `url(${getChampionSplashUrl(match.champion)})` }} />
+                  <div className="wr-matchContent">
+                    <div>
+                      <div className="wr-matchTop">
+                        <strong>{match.champion}</strong>
+                        <span className="wr-roleTag">ADC</span>
+                        {match.game_duration && <span className="wr-durationTag">{match.game_duration}m</span>}
                       </div>
-                      <div className="wr-matchRight">
-                        <div className="wr-kda">{match.k_d_a}</div>
-                        {match.first_blood !== null && match.first_blood !== undefined && (
-                          <div className={`wr-firstBlood ${match.first_blood ? 'is-positive' : 'is-negative'}`}>
-                            {match.first_blood ? '🩸 FB' : '💀 Gave FB'}
-                          </div>
-                        )}
-                        <div className="wr-marks">
-                          {match.marks_in_division}/{getMaxMarks(match.rank_tier)}
+                      {match.my_support && (
+                        <div className="wr-matchLane">
+                          w/ {match.my_support}
+                          {(match.enemy_adc || match.enemy_support) && <> vs {match.enemy_adc || '?'} + {match.enemy_support || '?'}</>}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => exportMatchForAI(match)}
-                          className="wr-exportButton"
-                          title="Export for AI analysis"
-                        >
-                          🤖 Get AI feedback
-                        </button>
-                      </div>
+                      )}
+                      {match.notes && <div className="wr-matchNotes">{match.notes}</div>}
+                      <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
                     </div>
-                  </article>
-                ))
+                    <div className="wr-matchRight">
+                      <div className="wr-kda">{match.k_d_a}</div>
+                      {match.first_blood !== null && match.first_blood !== undefined && (
+                        <div className={`wr-firstBlood ${match.first_blood ? 'is-positive' : 'is-negative'}`}>
+                          {match.first_blood ? '🩸 FB' : '💀 Gave FB'}
+                        </div>
+                      )}
+                      <div className="wr-marks">{match.marks_in_division}/{getMaxMarks(match.rank_tier)}</div>
+                      <button type="button" onClick={() => exportMatchForAI(match)} className="wr-exportButton" title="Export for AI analysis">
+                        🤖 Get AI feedback
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))
             )}
           </div>
         </div>
