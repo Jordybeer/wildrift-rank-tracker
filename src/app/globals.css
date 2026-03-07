@@ -243,13 +243,21 @@ button {
   gap: 10px;
 }
 
+/* KDA always 3 cols regardless of screen size */
+.wr-kdaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .wr-chip,
 .wr-pill,
 .wr-segmentButton,
 .wr-stepperButton,
 .wr-primaryButton,
 .wr-secondaryButton,
-.wr-exportButton,
+.wr-perplexityButton,
+.wr-copyButton,
 .wr-inlineInput,
 .wr-input,
 .wr-select,
@@ -308,16 +316,44 @@ button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.wr-segment.wr-gradeSegment {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.wr-segment.wr-lossReasonSegment {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .wr-segmentButton {
   min-height: 52px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.04);
   color: #cbd5e1;
+  transition: 120ms ease;
 }
 
 .wr-segmentButton.is-selected {
   background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.08));
   color: white;
+}
+
+.wr-segmentButton.is-mvp.is-selected,
+.wr-segmentButton.is-mvp {
+  color: #fcd34d;
+}
+
+.wr-segmentButton.is-mvp.is-selected {
+  background: linear-gradient(180deg, rgba(251,191,36,0.28), rgba(251,191,36,0.1));
+  border-color: rgba(251,191,36,0.4);
+}
+
+.wr-segmentButton.is-svp {
+  color: #bfdbfe;
+}
+
+.wr-segmentButton.is-svp.is-selected {
+  background: linear-gradient(180deg, rgba(96,165,250,0.28), rgba(96,165,250,0.08));
+  border-color: rgba(96,165,250,0.4);
 }
 
 .wr-stepperGrid {
@@ -457,24 +493,6 @@ button {
   margin-bottom: 18px;
 }
 
-.wr-exportButton {
-  margin-top: 8px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(168, 85, 247, 0.12));
-  border-color: rgba(139, 92, 246, 0.3);
-  color: #e9d5ff;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: 160ms ease;
-}
-
-.wr-exportButton:hover {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(168, 85, 247, 0.18));
-  transform: translateY(-1px);
-}
-
 .wr-primaryButton:disabled {
   opacity: 0.55;
 }
@@ -590,11 +608,16 @@ button {
 .wr-matchContent {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
   padding: 16px;
   z-index: 1;
+}
+
+.wr-matchLeft {
+  flex: 1;
+  min-width: 0;
 }
 
 .wr-matchTop {
@@ -620,10 +643,56 @@ button {
   letter-spacing: 0.04em;
 }
 
+/* Grade badge in match history */
+.wr-gradeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.wr-gradeBadge.is-a {
+  background: rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+  border-color: rgba(148,163,184,0.2);
+}
+
+.wr-gradeBadge.is-s {
+  background: rgba(251, 191, 36, 0.14);
+  color: #fde68a;
+  border-color: rgba(251,191,36,0.25);
+}
+
+.wr-gradeBadge.is-mvp {
+  background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15));
+  color: #fcd34d;
+  border-color: rgba(251,191,36,0.4);
+}
+
+.wr-gradeBadge.is-svp {
+  background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(59,130,246,0.12));
+  color: #bfdbfe;
+  border-color: rgba(96,165,250,0.35);
+}
+
 .wr-matchLane {
   color: var(--wr-subtle);
   font-size: 13px;
   margin-bottom: 4px;
+}
+
+/* Loss reason tag in match history */
+.wr-lossReasonTag {
+  display: inline-block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wr-red);
 }
 
 .wr-matchNotes {
@@ -639,17 +708,29 @@ button {
 }
 
 .wr-matchRight {
+  flex-shrink: 0;
   text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
 }
 
 .wr-kda {
   color: #e2e8f0;
+  font-size: 17px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
+/* KP badge in match history */
+.wr-kpBadge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wr-cyan);
+}
+
 .wr-firstBlood {
-  margin-top: 4px;
   font-size: 12px;
   font-weight: 700;
 }
@@ -663,10 +744,61 @@ button {
 }
 
 .wr-marks {
-  margin-top: 4px;
   font-size: 16px;
   font-weight: 800;
   color: var(--wr-blue);
+}
+
+/* Action buttons row in match card */
+.wr-actionButtons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+/* Open in Perplexity button */
+.wr-perplexityButton {
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(139,92,246,0.18), rgba(168,85,247,0.12));
+  border-color: rgba(139,92,246,0.35);
+  color: #e9d5ff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: 160ms ease;
+}
+
+.wr-perplexityButton:hover,
+.wr-perplexityButton:active {
+  background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(168,85,247,0.22));
+  transform: translateY(-1px);
+}
+
+/* Copy prompt button */
+.wr-copyButton {
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.07);
+  border-color: var(--wr-border);
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: 160ms ease;
+}
+
+.wr-copyButton:hover,
+.wr-copyButton:active {
+  background: rgba(255,255,255,0.12);
+}
+
+.wr-copyButton.is-copied {
+  background: rgba(52,211,153,0.15);
+  border-color: rgba(52,211,153,0.35);
+  color: #6ee7b7;
 }
 
 @media (min-width: 980px) {
@@ -677,7 +809,10 @@ button {
 }
 
 @media (max-width: 820px) {
-  .wr-statGrid,
+  .wr-statGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .wr-stepperGrid {
     grid-template-columns: 1fr;
   }
@@ -692,11 +827,15 @@ button {
 
   .wr-matchContent {
     flex-direction: column;
-    align-items: flex-start;
   }
 
   .wr-matchRight {
+    align-items: flex-start;
     text-align: left;
+  }
+
+  .wr-actionButtons {
+    justify-content: flex-start;
   }
 
   .wr-rankPicker {

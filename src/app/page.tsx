@@ -164,9 +164,8 @@ function StatStepper({ label, value, onChange }: { label: string; value: number;
 
 function generateSessionId() { return crypto.randomUUID(); }
 
-function exportMatchForAI(match: Match) {
-  const data = {
-    prompt: `You are a Diamond-level Wild Rift coach. Analyze this ADC match and provide:
+function buildPrompt(match: Match): string {
+  return `You are a Diamond-level Wild Rift coach. Analyze this ADC match and provide:
 1. **Performance Summary**: Overall assessment (2-3 sentences)
 2. **Strengths**: What went well (bullet points)
 3. **Areas for Improvement**: Key mistakes or missed opportunities (bullet points)
@@ -175,61 +174,11 @@ function exportMatchForAI(match: Match) {
 Match data:
 - Champion: ${match.champion}
 - Result: ${match.win ? 'Victory' : 'Defeat'}
-- KDA: ${match.k_d_a}
-${match.kill_participation != null ? `- Kill participation: ${match.kill_participation}%` : ''}
-${match.performance_grade ? `- Grade: ${match.performance_grade}` : ''}
-${!match.win && match.loss_reason ? `- Loss reason: ${match.loss_reason}` : ''}
+- KDA: ${match.k_d_a}${match.kill_participation != null ? `\n- Kill participation: ${match.kill_participation}%` : ''}${match.performance_grade ? `\n- Grade: ${match.performance_grade}` : ''}${!match.win && match.loss_reason ? `\n- Loss reason: ${match.loss_reason}` : ''}
 - Duration: ${match.game_duration ? `${match.game_duration} minutes` : 'not recorded'}
-- Rank: ${RANK_TIERS.find(t => t.value === match.rank_tier)?.label}
-${match.my_support ? `- My support: ${match.my_support}` : ''}
-${match.enemy_adc || match.enemy_support ? `- Enemy lane: ${match.enemy_adc || '?'} + ${match.enemy_support || '?'}` : ''}
-${match.first_blood !== null && match.first_blood !== undefined ? `- First blood: ${match.first_blood ? 'Got it' : 'Gave it away'}` : ''}
-${match.turret_kills ? `- Turrets destroyed: ${match.turret_kills}` : ''}
-${match.vision_score ? `- Vision score: ${match.vision_score}` : ''}
-${match.cs_at_10 ? `- CS at 10 min: ${match.cs_at_10}` : ''}
-${match.gold_earned ? `- Gold earned: ${match.gold_earned}k` : ''}
-${match.damage_dealt ? `- Damage dealt: ${match.damage_dealt}k` : ''}
-${match.damage_taken ? `- Damage taken: ${match.damage_taken}k` : ''}
-${match.dragons_taken ? `- Dragons secured: ${match.dragons_taken}` : ''}
-${match.barons_taken ? `- Barons secured: ${match.barons_taken}` : ''}
-${match.heralds_taken ? `- Heralds secured: ${match.heralds_taken}` : ''}
-${match.objective_participation ? `- Objective participation: ${match.objective_participation}%` : ''}
-${match.premade_with ? `- Playing with: ${match.premade_with}` : ''}
-${match.notes ? `- Player notes: ${match.notes}` : ''}
+- Rank: ${RANK_TIERS.find(t => t.value === match.rank_tier)?.label}${match.my_support ? `\n- My support: ${match.my_support}` : ''}${match.enemy_adc || match.enemy_support ? `\n- Enemy lane: ${match.enemy_adc || '?'} + ${match.enemy_support || '?'}` : ''}${match.first_blood !== null && match.first_blood !== undefined ? `\n- First blood: ${match.first_blood ? 'Got it' : 'Gave it away'}` : ''}${match.turret_kills ? `\n- Turrets: ${match.turret_kills}` : ''}${match.vision_score ? `\n- Vision score: ${match.vision_score}` : ''}${match.cs_at_10 ? `\n- CS at 10 min: ${match.cs_at_10}` : ''}${match.gold_earned ? `\n- Gold earned: ${match.gold_earned}k` : ''}${match.damage_dealt ? `\n- Damage dealt: ${match.damage_dealt}k` : ''}${match.damage_taken ? `\n- Damage taken: ${match.damage_taken}k` : ''}${match.dragons_taken ? `\n- Dragons: ${match.dragons_taken}` : ''}${match.barons_taken ? `\n- Barons: ${match.barons_taken}` : ''}${match.heralds_taken ? `\n- Heralds: ${match.heralds_taken}` : ''}${match.objective_participation ? `\n- Objective participation: ${match.objective_participation}%` : ''}${match.premade_with ? `\n- Playing with: ${match.premade_with}` : ''}${match.notes ? `\n- Player notes: ${match.notes}` : ''}
 
-Provide honest, constructive feedback focused on improvement.`,
-    match_data: {
-      champion: match.champion,
-      result: match.win ? 'Victory' : 'Defeat',
-      kda: match.k_d_a,
-      kill_participation: match.kill_participation,
-      performance_grade: match.performance_grade,
-      loss_reason: match.loss_reason,
-      rank: RANK_TIERS.find(t => t.value === match.rank_tier)?.label,
-      game_duration: match.game_duration,
-      first_blood: match.first_blood,
-      my_support: match.my_support,
-      enemy_lane: { adc: match.enemy_adc, support: match.enemy_support },
-      enemy_team: { top: match.enemy_top, jungle: match.enemy_jungle, mid: match.enemy_mid },
-      stats: {
-        turret_kills: match.turret_kills, vision_score: match.vision_score,
-        cs_at_10: match.cs_at_10, gold_earned: match.gold_earned,
-        damage_dealt: match.damage_dealt, damage_taken: match.damage_taken,
-        objective_participation: match.objective_participation,
-      },
-      objectives: { dragons_taken: match.dragons_taken, barons_taken: match.barons_taken, heralds_taken: match.heralds_taken },
-      premade_with: match.premade_with,
-      notes: match.notes,
-      timestamp: match.created_at,
-    },
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `match-${match.champion}-${new Date(match.created_at).toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+Provide honest, constructive feedback focused on improvement.`;
 }
 
 export default function Dashboard() {
@@ -237,10 +186,13 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState('');
   const [statusType, setStatusType] = useState<'error' | 'success' | ''>('');
+  const [copiedAt, setCopiedAt] = useState<string | null>(null);
 
   const [champion, setChampion] = useState('');
   const [win, setWin] = useState(true);
-  const [kda, setKda] = useState('');
+  const [kills, setKills] = useState(0);
+  const [deaths, setDeaths] = useState(0);
+  const [assists, setAssists] = useState(0);
   const [killParticipation, setKillParticipation] = useState(0);
   const [performanceGrade, setPerformanceGrade] = useState('');
   const [lossReason, setLossReason] = useState('');
@@ -325,6 +277,21 @@ export default function Dashboard() {
     setTimeout(() => { setStatus(''); setStatusType(''); }, 2000);
   };
 
+  const openInPerplexity = (match: Match) => {
+    const prompt = buildPrompt(match);
+    window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(prompt)}`, '_blank');
+  };
+
+  const copyPrompt = async (match: Match) => {
+    try {
+      await navigator.clipboard.writeText(buildPrompt(match));
+      setCopiedAt(match.created_at);
+      setTimeout(() => setCopiedAt(null), 2000);
+    } catch {
+      setStatus('Could not access clipboard.'); setStatusType('error');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true); setStatus(''); setStatusType('');
@@ -340,7 +307,7 @@ export default function Dashboard() {
       if (newMarks > maxMarks) {
         setStatus('You would rank up. Change your rank tier to the next division first, then log the match.'); setStatusType('error'); setSubmitting(false); return;
       }
-      const kdaNorm = kda.trim() || '0/0/0';
+      const kdaNorm = `${kills}/${deaths}/${assists}`;
       const { error } = await supabase.from('matches').insert([{
         champion, role: 'adc', win,
         k_d_a: kdaNorm,
@@ -361,7 +328,8 @@ export default function Dashboard() {
       setStatus(`Logged ${champion} successfully. Marks: ${newMarks}/${maxMarks}`);
       setStatusType('success');
       setCurrentMarks(newMarks);
-      setChampion(''); setWin(true); setKda(''); setKillParticipation(0); setPerformanceGrade(''); setLossReason('');
+      setChampion(''); setWin(true); setKills(0); setDeaths(0); setAssists(0);
+      setKillParticipation(0); setPerformanceGrade(''); setLossReason('');
       setMySupport(''); setEnemyAdc(''); setEnemySupport(''); setEnemyTop(''); setEnemyJungle(''); setEnemyMid('');
       setGameDuration(0); setFirstBlood(null); setTurretKills(0); setVisionScore(0);
       setGoldEarned(0); setDamageDealt(0); setDamageTaken(0); setCsAt10(0); setObjectiveParticipation(0);
@@ -398,7 +366,7 @@ export default function Dashboard() {
         {sessionId && (
           <div className="wr-sessionBanner">
             <span>🎮 Session active</span>
-            <span className="wr-sessionRecord">{stats.sessionWins}W - {stats.sessionLosses}L</span>
+            <span className="wr-sessionRecord">{stats.sessionWins}W – {stats.sessionLosses}L</span>
           </div>
         )}
       </section>
@@ -453,35 +421,32 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* KDA + KP row */}
-          <div className="wr-kdaRow">
-            <div className="wr-kdaField">
-              <label className="wr-label">KDA</label>
-              <input
-                type="text"
-                inputMode="text"
-                value={kda}
-                onChange={(e) => setKda(e.target.value)}
-                placeholder="0/0/0"
-                className="wr-input wr-kdaInput"
-              />
+          {/* KDA — 3 steppers */}
+          <div>
+            <label className="wr-label">KDA</label>
+            <div className="wr-kdaGrid">
+              <StatStepper label="Kills" value={kills} onChange={setKills} />
+              <StatStepper label="Deaths" value={deaths} onChange={setDeaths} />
+              <StatStepper label="Assists" value={assists} onChange={setAssists} />
             </div>
-            <div className="wr-kpField">
-              <label className="wr-label">KP %</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={killParticipation === 0 ? '' : String(killParticipation)}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === '') { setKillParticipation(0); return; }
-                  const n = parseInt(v, 10);
-                  if (!isNaN(n) && n >= 0 && n <= 100) setKillParticipation(n);
-                }}
-                placeholder="0"
-                className="wr-input"
-              />
-            </div>
+          </div>
+
+          {/* KP % */}
+          <div>
+            <label className="wr-label">KP %</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={killParticipation === 0 ? '' : String(killParticipation)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '') { setKillParticipation(0); return; }
+                const n = parseInt(v, 10);
+                if (!isNaN(n) && n >= 0 && n <= 100) setKillParticipation(n);
+              }}
+              placeholder="0"
+              className="wr-input"
+            />
           </div>
 
           {/* Performance grade */}
@@ -490,7 +455,7 @@ export default function Dashboard() {
             <div className="wr-segment wr-gradeSegment">
               {GRADE_OPTIONS.map((g) => (
                 <button key={g.value} type="button"
-                  className={`wr-segmentButton wr-gradeButton ${
+                  className={`wr-segmentButton ${
                     performanceGrade === g.value ? 'is-selected' : ''
                   } ${
                     g.value === 'MVP' ? 'is-mvp' : g.value === 'SVP' ? 'is-svp' : ''
@@ -675,7 +640,7 @@ export default function Dashboard() {
                 <article key={index} className={`wr-matchCard ${match.win ? 'is-win' : 'is-loss'}`}>
                   <div className="wr-championBanner" style={{ backgroundImage: `url(${getChampionSplashUrl(match.champion)})` }} />
                   <div className="wr-matchContent">
-                    <div>
+                    <div className="wr-matchLeft">
                       <div className="wr-matchTop">
                         <strong>{match.champion}</strong>
                         <span className="wr-roleTag">ADC</span>
@@ -711,9 +676,24 @@ export default function Dashboard() {
                         </div>
                       )}
                       <div className="wr-marks">{match.marks_in_division}/{getMaxMarks(match.rank_tier)}</div>
-                      <button type="button" onClick={() => exportMatchForAI(match)} className="wr-exportButton" title="Export for AI analysis">
-                        🤖 Get AI feedback
-                      </button>
+                      <div className="wr-actionButtons">
+                        <button
+                          type="button"
+                          onClick={() => openInPerplexity(match)}
+                          className="wr-perplexityButton"
+                          title="Open in Perplexity"
+                        >
+                          🤖 Ask AI
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copyPrompt(match)}
+                          className={`wr-copyButton ${copiedAt === match.created_at ? 'is-copied' : ''}`}
+                          title="Copy prompt to clipboard"
+                        >
+                          {copiedAt === match.created_at ? '✓ Copied' : '📋 Copy'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </article>
