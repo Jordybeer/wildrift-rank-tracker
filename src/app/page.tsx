@@ -458,27 +458,29 @@ export default function Dashboard() {
             <div className="wr-kdaField">
               <label className="wr-label">KDA</label>
               <input
-                type="text" inputMode="numeric" value={kda}
+                type="text"
+                inputMode="text"
+                value={kda}
                 onChange={(e) => setKda(e.target.value)}
-                placeholder="0/0/0" className="wr-input wr-kdaInput"
+                placeholder="0/0/0"
+                className="wr-input wr-kdaInput"
               />
             </div>
             <div className="wr-kpField">
               <label className="wr-label">KP %</label>
-              <div className="wr-kpInputWrap">
-                <input
-                  type="text" inputMode="numeric"
-                  value={killParticipation === 0 ? '' : String(killParticipation)}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === '') { setKillParticipation(0); return; }
-                    const n = parseInt(v, 10);
-                    if (!isNaN(n) && n >= 0 && n <= 100) setKillParticipation(n);
-                  }}
-                  placeholder="0" className="wr-input"
-                />
-                <span className="wr-kpSuffix">%</span>
-              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={killParticipation === 0 ? '' : String(killParticipation)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '') { setKillParticipation(0); return; }
+                  const n = parseInt(v, 10);
+                  if (!isNaN(n) && n >= 0 && n <= 100) setKillParticipation(n);
+                }}
+                placeholder="0"
+                className="wr-input"
+              />
             </div>
           </div>
 
