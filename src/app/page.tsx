@@ -8,7 +8,9 @@ type Match = {
   role: string;
   win: boolean;
   k_d_a: string;
+  kill_participation?: number;
   performance_grade?: string;
+  loss_reason?: string;
   rank_tier: string;
   marks_in_division: number;
   created_at: string;
@@ -99,6 +101,15 @@ const GRADE_OPTIONS = [
   { value: 'SVP', label: 'SVP' },
 ];
 
+const LOSS_REASONS = [
+  { value: '', label: '—' },
+  { value: 'Lane diff', label: 'Lane' },
+  { value: 'Jungle diff', label: 'Jungle' },
+  { value: 'My mistake', label: 'My fault' },
+  { value: 'Team', label: 'Team' },
+  { value: 'Outscaled', label: 'Outscaled' },
+];
+
 const DDRAGON_KEY_OVERRIDES: Record<string, string> = {
   "Kai'Sa": 'Kaisa',
   'Miss Fortune': 'MissFortune',
@@ -165,7 +176,9 @@ Match data:
 - Champion: ${match.champion}
 - Result: ${match.win ? 'Victory' : 'Defeat'}
 - KDA: ${match.k_d_a}
+${match.kill_participation != null ? `- Kill participation: ${match.kill_participation}%` : ''}
 ${match.performance_grade ? `- Grade: ${match.performance_grade}` : ''}
+${!match.win && match.loss_reason ? `- Loss reason: ${match.loss_reason}` : ''}
 - Duration: ${match.game_duration ? `${match.game_duration} minutes` : 'not recorded'}
 - Rank: ${RANK_TIERS.find(t => t.value === match.rank_tier)?.label}
 ${match.my_support ? `- My support: ${match.my_support}` : ''}
@@ -180,7 +193,7 @@ ${match.damage_taken ? `- Damage taken: ${match.damage_taken}k` : ''}
 ${match.dragons_taken ? `- Dragons secured: ${match.dragons_taken}` : ''}
 ${match.barons_taken ? `- Barons secured: ${match.barons_taken}` : ''}
 ${match.heralds_taken ? `- Heralds secured: ${match.heralds_taken}` : ''}
-${match.objective_participation ? `- Objective participation: ${match.objective_participation}` : ''}
+${match.objective_participation ? `- Objective participation: ${match.objective_participation}%` : ''}
 ${match.premade_with ? `- Playing with: ${match.premade_with}` : ''}
 ${match.notes ? `- Player notes: ${match.notes}` : ''}
 
@@ -189,7 +202,9 @@ Provide honest, constructive feedback focused on improvement.`,
       champion: match.champion,
       result: match.win ? 'Victory' : 'Defeat',
       kda: match.k_d_a,
+      kill_participation: match.kill_participation,
       performance_grade: match.performance_grade,
+      loss_reason: match.loss_reason,
       rank: RANK_TIERS.find(t => t.value === match.rank_tier)?.label,
       game_duration: match.game_duration,
       first_blood: match.first_blood,
@@ -226,7 +241,9 @@ export default function Dashboard() {
   const [champion, setChampion] = useState('');
   const [win, setWin] = useState(true);
   const [kda, setKda] = useState('');
+  const [killParticipation, setKillParticipation] = useState(0);
   const [performanceGrade, setPerformanceGrade] = useState('');
+  const [lossReason, setLossReason] = useState('');
   const [currentRank, setCurrentRank] = useState('DIAMOND_IV');
   const [currentMarks, setCurrentMarks] = useState(2);
   const [mySupport, setMySupport] = useState('');
@@ -327,7 +344,9 @@ export default function Dashboard() {
       const { error } = await supabase.from('matches').insert([{
         champion, role: 'adc', win,
         k_d_a: kdaNorm,
+        kill_participation: killParticipation || null,
         performance_grade: performanceGrade || null,
+        loss_reason: (!win && lossReason) ? lossReason : null,
         rank_tier: currentRank, marks_in_division: newMarks,
         my_support: mySupport || null, enemy_adc: enemyAdc || null, enemy_support: enemySupport || null,
         enemy_top: enemyTop || null, enemy_jungle: enemyJungle || null, enemy_mid: enemyMid || null,
@@ -342,7 +361,7 @@ export default function Dashboard() {
       setStatus(`Logged ${champion} successfully. Marks: ${newMarks}/${maxMarks}`);
       setStatusType('success');
       setCurrentMarks(newMarks);
-      setChampion(''); setWin(true); setKda(''); setPerformanceGrade('');
+      setChampion(''); setWin(true); setKda(''); setKillParticipation(0); setPerformanceGrade(''); setLossReason('');
       setMySupport(''); setEnemyAdc(''); setEnemySupport(''); setEnemyTop(''); setEnemyJungle(''); setEnemyMid('');
       setGameDuration(0); setFirstBlood(null); setTurretKills(0); setVisionScore(0);
       setGoldEarned(0); setDamageDealt(0); setDamageTaken(0); setCsAt10(0); setObjectiveParticipation(0);
@@ -434,17 +453,33 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* KDA — single field */}
-          <div>
-            <label className="wr-label">KDA</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={kda}
-              onChange={(e) => setKda(e.target.value)}
-              placeholder="0/0/0"
-              className="wr-input wr-kdaInput"
-            />
+          {/* KDA + KP row */}
+          <div className="wr-kdaRow">
+            <div className="wr-kdaField">
+              <label className="wr-label">KDA</label>
+              <input
+                type="text" inputMode="numeric" value={kda}
+                onChange={(e) => setKda(e.target.value)}
+                placeholder="0/0/0" className="wr-input wr-kdaInput"
+              />
+            </div>
+            <div className="wr-kpField">
+              <label className="wr-label">KP %</label>
+              <div className="wr-kpInputWrap">
+                <input
+                  type="text" inputMode="numeric"
+                  value={killParticipation === 0 ? '' : String(killParticipation)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { setKillParticipation(0); return; }
+                    const n = parseInt(v, 10);
+                    if (!isNaN(n) && n >= 0 && n <= 100) setKillParticipation(n);
+                  }}
+                  placeholder="0" className="wr-input"
+                />
+                <span className="wr-kpSuffix">%</span>
+              </div>
+            </div>
           </div>
 
           {/* Performance grade */}
@@ -452,21 +487,34 @@ export default function Dashboard() {
             <span className="wr-label">Performance</span>
             <div className="wr-segment wr-gradeSegment">
               {GRADE_OPTIONS.map((g) => (
-                <button
-                  key={g.value}
-                  type="button"
+                <button key={g.value} type="button"
                   className={`wr-segmentButton wr-gradeButton ${
                     performanceGrade === g.value ? 'is-selected' : ''
                   } ${
                     g.value === 'MVP' ? 'is-mvp' : g.value === 'SVP' ? 'is-svp' : ''
                   }`}
-                  onClick={() => setPerformanceGrade(g.value)}
-                >
+                  onClick={() => setPerformanceGrade(g.value)}>
                   {g.label}
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Loss reason — only on defeat */}
+          {!win && (
+            <div className="wr-segmentWrap">
+              <span className="wr-label">Why did you lose?</span>
+              <div className="wr-segment wr-lossReasonSegment">
+                {LOSS_REASONS.map((r) => (
+                  <button key={r.value} type="button"
+                    className={`wr-segmentButton ${lossReason === r.value ? 'is-selected' : ''}`}
+                    onClick={() => setLossReason(r.value)}>
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Optional sections */}
           <details className="wr-details">
@@ -491,7 +539,7 @@ export default function Dashboard() {
                 <StatStepper label="Barons" value={baronsTaken} onChange={setBaronsTaken} />
                 <StatStepper label="Heralds" value={heraldsTaken} onChange={setHeraldsTaken} />
               </div>
-              <StatStepper label="Obj participation" value={objectiveParticipation} onChange={setObjectiveParticipation} />
+              <StatStepper label="Obj participation %" value={objectiveParticipation} onChange={setObjectiveParticipation} />
             </div>
           </details>
 
@@ -634,8 +682,7 @@ export default function Dashboard() {
                           <span className={`wr-gradeBadge ${
                             match.performance_grade === 'MVP' ? 'is-mvp'
                             : match.performance_grade === 'SVP' ? 'is-svp'
-                            : match.performance_grade === 'S' ? 'is-s'
-                            : 'is-a'
+                            : match.performance_grade === 'S' ? 'is-s' : 'is-a'
                           }`}>{match.performance_grade}</span>
                         )}
                       </div>
@@ -645,11 +692,17 @@ export default function Dashboard() {
                           {(match.enemy_adc || match.enemy_support) && <> vs {match.enemy_adc || '?'} + {match.enemy_support || '?'}</>}
                         </div>
                       )}
+                      {!match.win && match.loss_reason && (
+                        <div className="wr-lossReasonTag">🟥 {match.loss_reason}</div>
+                      )}
                       {match.notes && <div className="wr-matchNotes">{match.notes}</div>}
                       <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
                     </div>
                     <div className="wr-matchRight">
                       <div className="wr-kda">{match.k_d_a}</div>
+                      {match.kill_participation != null && match.kill_participation > 0 && (
+                        <div className="wr-kpBadge">KP {match.kill_participation}%</div>
+                      )}
                       {match.first_blood !== null && match.first_blood !== undefined && (
                         <div className={`wr-firstBlood ${match.first_blood ? 'is-positive' : 'is-negative'}`}>
                           {match.first_blood ? '🩸 FB' : '💀 Gave FB'}
