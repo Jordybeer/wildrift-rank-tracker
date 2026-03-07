@@ -1,7 +1,7 @@
 {
   "name": "Wild Rift Tracker",
   "short_name": "WR Tracker",
-  "description": "Track your Wild Rift ADC rank progression and get AI coaching feedback",
+  "description": "Track your Wild Rift ADC rank progression and get AI-powered coaching insights",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b1220",

@@ -385,17 +385,12 @@ button {
 }
 
 .wr-stepperValue {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 52px;
-  padding: 0 14px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
+  text-align: center;
   font-size: 18px;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  color: white;
+  padding: 8px;
+  user-select: none;
 }
 
 .wr-input,

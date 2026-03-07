@@ -94,7 +94,7 @@ const RANK_TIERS = [
 ];
 
 const GRADE_OPTIONS = [
-  { value: '', label: '\u2014' },
+  { value: '', label: '—' },
   { value: 'A', label: 'A' },
   { value: 'S', label: 'S' },
   { value: 'MVP', label: 'MVP' },
@@ -102,7 +102,7 @@ const GRADE_OPTIONS = [
 ];
 
 const LOSS_REASONS = [
-  { value: '', label: '\u2014' },
+  { value: '', label: '—' },
   { value: 'Lane diff', label: 'Lane' },
   { value: 'Jungle diff', label: 'Jungle' },
   { value: 'My mistake', label: 'My fault' },
@@ -121,8 +121,8 @@ const DDRAGON_KEY_OVERRIDES: Record<string, string> = {
   "Rek'Sai": 'RekSai',
   'Tahm Kench': 'TahmKench',
   'Twisted Fate': 'TwistedFate',
-  'Xin Zhao': 'XinZhao',
   "Vel'Koz": 'Velkoz',
+  'Xin Zhao': 'XinZhao',
 };
 
 function getChampionSplashUrl(champion: string): string {
@@ -246,7 +246,7 @@ function buildBatchPrompt(matches: Match[], count: number | 'all'): string {
     const parts = [
       `G${i + 1}`,
       m.champion,
-      m.win ? '\u2713WIN' : '\u00d7LOSS',
+      m.win ? '✓WIN' : '×LOSS',
       m.k_d_a + (m.kill_participation ? ` KP${m.kill_participation}%` : ''),
       m.performance_grade || '',
       m.game_duration ? `${m.game_duration}m` : '',
@@ -263,15 +263,15 @@ function buildBatchPrompt(matches: Match[], count: number | 'all'): string {
 1. **Playstyle Profile**: What kind of ADC player am I based on this data?
 2. **Recurring Patterns**: Consistent strengths and weaknesses across games
 3. **Biggest Improvement Area**: Single highest-impact thing to work on
-4. **Champion Pool Notes**: Patterns per champion \u2014 what to play more/less of?
+4. **Champion Pool Notes**: Patterns per champion — what to play more/less of?
 5. **Actionable Goals**: 2-3 specific, concrete goals for the next session
 
-AGGREGATE STATS (${selected.length} games \u2014 ${dateFrom} to ${dateTo}):
-\u2022 Record: ${wins}W\u2013${losses}L (${wr}% WR)${streakLabel}
-\u2022 Avg KDA: ${avgK}/${avgD}/${avgA} (${kdaRatio} ratio)${avgKP !== null ? `  |  Avg KP: ${avgKP}%` : ''}${avgDur !== null ? `  |  Avg duration: ${avgDur}m` : ''}${fbRate !== null ? `  |  First blood rate: ${fbRate}%` : ''}
-\u2022 Champions: ${champBreakdown}${gradeBreakdown ? `\n\u2022 Grades: ${gradeBreakdown}` : ''}${lrBreakdown ? `\n\u2022 Loss causes: ${lrBreakdown}` : ''}
+AGGREGATE STATS (${selected.length} games — ${dateFrom} to ${dateTo}):
+• Record: ${wins}W–${losses}L (${wr}% WR)${streakLabel}
+• Avg KDA: ${avgK}/${avgD}/${avgA} (${kdaRatio} ratio)${avgKP !== null ? `  |  Avg KP: ${avgKP}%` : ''}${avgDur !== null ? `  |  Avg duration: ${avgDur}m` : ''}${fbRate !== null ? `  |  First blood rate: ${fbRate}%` : ''}
+• Champions: ${champBreakdown}${gradeBreakdown ? `\n• Grades: ${gradeBreakdown}` : ''}${lrBreakdown ? `\n• Loss causes: ${lrBreakdown}` : ''}
 
-MATCH LOG (most recent \u2192 oldest):
+MATCH LOG (most recent → oldest):
 ${matchLines}
 
 Focus on patterns across games, not individual match breakdowns.`;
@@ -316,15 +316,15 @@ export default function Dashboard() {
   const [heraldsTaken, setHeraldsTaken] = useState(0);
   const [notes, setNotes] = useState('');
 
-  const smartBatchDefault = useMemo(() => {
+  useEffect(() => { fetchMatches(); }, []);
+
+  const batchCount = useMemo(() => {
     if (matches.length >= 10) return 10;
     if (matches.length >= 5) return 5;
     return 'all' as const;
   }, [matches.length]);
 
-  const [batchCount, setBatchCount] = useState<5 | 10 | 20 | 'all'>(smartBatchDefault);
-
-  useEffect(() => { fetchMatches(); }, []);
+  const [selectedBatchCount, setSelectedBatchCount] = useState<5 | 10 | 20 | 'all'>(10);
 
   const stats = useMemo(() => {
     const totalMatches = matches.length;
@@ -398,12 +398,12 @@ export default function Dashboard() {
   };
 
   const openBatchInPerplexity = () => {
-    window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(buildBatchPrompt(matches, batchCount))}`, '_blank');
+    window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(buildBatchPrompt(matches, selectedBatchCount))}`, '_blank');
   };
 
   const copyBatchPrompt = async () => {
     try {
-      await navigator.clipboard.writeText(buildBatchPrompt(matches, batchCount));
+      await navigator.clipboard.writeText(buildBatchPrompt(matches, selectedBatchCount));
       setBatchCopied(true);
       setTimeout(() => setBatchCopied(false), 2000);
     } catch {
@@ -467,7 +467,7 @@ export default function Dashboard() {
     <main className="wr-shell">
       <section className="wr-hero">
         <div>
-          <div className="wr-badge">ADC only \u00b7 quick log</div>
+          <div className="wr-badge">ADC only · quick log</div>
           <h1 className="wr-title">Wild Rift Tracker</h1>
           <p className="wr-subtitle">Apple-style, mobile-first, and much faster to fill in.</p>
         </div>
@@ -484,8 +484,8 @@ export default function Dashboard() {
         </div>
         {sessionId && (
           <div className="wr-sessionBanner">
-            <span>\ud83c\udfae Session active</span>
-            <span className="wr-sessionRecord">{stats.sessionWins}W \u2013 {stats.sessionLosses}L</span>
+            <span>🎮 Session active</span>
+            <span className="wr-sessionRecord">{stats.sessionWins}W – {stats.sessionLosses}L</span>
           </div>
         )}
       </section>
@@ -522,7 +522,7 @@ export default function Dashboard() {
                 <button key={name} type="button"
                   className={`wr-chip ${champion === name ? 'is-selected' : ''}`}
                   onClick={() => setChampion(name)} aria-pressed={champion === name}>
-                  <span className={`wr-check ${champion === name ? 'is-selected' : ''}`}>\u2713</span>
+                  <span className={`wr-check ${champion === name ? 'is-selected' : ''}`}>✓</span>
                   {name}
                 </button>
               ))}
@@ -598,7 +598,7 @@ export default function Dashboard() {
                 <div className="wr-segment wr-segmentThree">
                   <button type="button" className={`wr-segmentButton ${firstBlood === true ? 'is-selected' : ''}`} onClick={() => setFirstBlood(true)}>Got it</button>
                   <button type="button" className={`wr-segmentButton ${firstBlood === false ? 'is-selected' : ''}`} onClick={() => setFirstBlood(false)}>Gave it</button>
-                  <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>{String.fromCharCode(8212)}</button>
+                  <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>—</button>
                 </div>
               </div>
               <div className="wr-stepperGrid">
@@ -635,7 +635,7 @@ export default function Dashboard() {
               <div>
                 <label className="wr-label">My support</label>
                 <select value={mySupport} onChange={(e) => setMySupport(e.target.value)} className="wr-select">
-                  <option value="">{String.fromCharCode(8212)}</option>
+                  <option value="">—</option>
                   {SUPPORT_CHAMPIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
@@ -742,7 +742,7 @@ export default function Dashboard() {
           {matches.length >= 2 && (
             <div className="wr-batchExport">
               <div className="wr-batchExportHeader">
-                <span className="wr-batchExportTitle">\ud83d\udcca Multi-game analysis</span>
+                <span className="wr-batchExportTitle">📊 Multi-game analysis</span>
                 <span className="wr-batchExportSub">Identify trends &amp; playstyle patterns</span>
               </div>
               <div className="wr-batchCounts">
@@ -750,8 +750,8 @@ export default function Dashboard() {
                   <button
                     key={String(n)}
                     type="button"
-                    className={`wr-batchCount ${batchCount === n ? 'is-selected' : ''}`}
-                    onClick={() => setBatchCount(n)}
+                    className={`wr-batchCount ${selectedBatchCount === n ? 'is-selected' : ''}`}
+                    onClick={() => setSelectedBatchCount(n)}
                     disabled={n !== 'all' && matches.length < n}
                   >
                     {n === 'all' ? `All ${matches.length}` : `Last ${n}`}
@@ -760,14 +760,14 @@ export default function Dashboard() {
               </div>
               <div className="wr-actionButtons" style={{ justifyContent: 'flex-start' }}>
                 <button type="button" onClick={openBatchInPerplexity} className="wr-perplexityButton">
-                  \ud83e\udd16 Analyze in Perplexity
+                  🤖 Analyze in Perplexity
                 </button>
                 <button
                   type="button"
                   onClick={copyBatchPrompt}
                   className={`wr-copyButton ${batchCopied ? 'is-copied' : ''}`}
                 >
-                  {batchCopied ? '\u2713 Copied' : '\ud83d\udccb Copy prompt'}
+                  {batchCopied ? '✓ Copied' : '📋 Copy prompt'}
                 </button>
               </div>
             </div>
@@ -799,7 +799,7 @@ export default function Dashboard() {
                         </div>
                       )}
                       {!match.win && match.loss_reason && (
-                        <div className="wr-lossReasonTag">\ud83d\udfe5 {match.loss_reason}</div>
+                        <div className="wr-lossReasonTag">🟥 {match.loss_reason}</div>
                       )}
                       {match.notes && <div className="wr-matchNotes">{match.notes}</div>}
                       <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
@@ -811,13 +811,13 @@ export default function Dashboard() {
                       )}
                       {match.first_blood !== null && match.first_blood !== undefined && (
                         <div className={`wr-firstBlood ${match.first_blood ? 'is-positive' : 'is-negative'}`}>
-                          {match.first_blood ? '\ud83e\ude78 FB' : '\ud83d\udc80 Gave FB'}
+                          {match.first_blood ? '🩸 FB' : '💀 Gave FB'}
                         </div>
                       )}
                       <div className="wr-marks">{match.marks_in_division}/{getMaxMarks(match.rank_tier)}</div>
                       <div className="wr-actionButtons">
                         <button type="button" onClick={() => openInPerplexity(match)} className="wr-perplexityButton" title="Open in Perplexity">
-                          \ud83e\udd16 Ask AI
+                          🤖 Ask AI
                         </button>
                         <button
                           type="button"
@@ -825,7 +825,7 @@ export default function Dashboard() {
                           className={`wr-copyButton ${copiedAt === match.created_at ? 'is-copied' : ''}`}
                           title="Copy prompt to clipboard"
                         >
-                          {copiedAt === match.created_at ? '\u2713 Copied' : '\ud83d\udccb Copy'}
+                          {copiedAt === match.created_at ? '✓ Copied' : '📋 Copy'}
                         </button>
                       </div>
                     </div>
