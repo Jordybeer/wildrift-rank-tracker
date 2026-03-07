@@ -258,6 +258,7 @@ button {
 .wr-secondaryButton,
 .wr-perplexityButton,
 .wr-copyButton,
+.wr-batchCount,
 .wr-inlineInput,
 .wr-input,
 .wr-select,
@@ -337,7 +338,6 @@ button {
   color: white;
 }
 
-.wr-segmentButton.is-mvp.is-selected,
 .wr-segmentButton.is-mvp {
   color: #fcd34d;
 }
@@ -643,7 +643,7 @@ button {
   letter-spacing: 0.04em;
 }
 
-/* Grade badge in match history */
+/* Grade badge */
 .wr-gradeBadge {
   display: inline-flex;
   align-items: center;
@@ -686,7 +686,7 @@ button {
   margin-bottom: 4px;
 }
 
-/* Loss reason tag in match history */
+/* Loss reason tag */
 .wr-lossReasonTag {
   display: inline-block;
   margin-bottom: 4px;
@@ -723,7 +723,7 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* KP badge in match history */
+/* KP badge */
 .wr-kpBadge {
   font-size: 12px;
   font-weight: 700;
@@ -749,7 +749,7 @@ button {
   color: var(--wr-blue);
 }
 
-/* Action buttons row in match card */
+/* Action buttons row */
 .wr-actionButtons {
   display: flex;
   gap: 6px;
@@ -758,7 +758,7 @@ button {
   margin-top: 6px;
 }
 
-/* Open in Perplexity button */
+/* Open in Perplexity */
 .wr-perplexityButton {
   padding: 8px 11px;
   border-radius: 12px;
@@ -799,6 +799,62 @@ button {
   background: rgba(52,211,153,0.15);
   border-color: rgba(52,211,153,0.35);
   color: #6ee7b7;
+}
+
+/* ── Batch analysis panel ── */
+.wr-batchExport {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(96,165,250,0.07), rgba(139,92,246,0.07));
+  border: 1px solid rgba(96,165,250,0.18);
+  margin-bottom: 16px;
+}
+
+.wr-batchExportHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wr-batchExportTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: -0.01em;
+}
+
+.wr-batchExportSub {
+  font-size: 12px;
+  color: var(--wr-subtle);
+}
+
+.wr-batchCounts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wr-batchCount {
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 120ms ease;
+}
+
+.wr-batchCount.is-selected {
+  background: rgba(96,165,250,0.16);
+  border-color: rgba(96,165,250,0.38);
+  color: #bfdbfe;
+}
+
+.wr-batchCount:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 @media (min-width: 980px) {

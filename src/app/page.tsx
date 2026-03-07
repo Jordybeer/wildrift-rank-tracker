@@ -94,7 +94,7 @@ const RANK_TIERS = [
 ];
 
 const GRADE_OPTIONS = [
-  { value: '', label: '—' },
+  { value: '', label: '\u2014' },
   { value: 'A', label: 'A' },
   { value: 'S', label: 'S' },
   { value: 'MVP', label: 'MVP' },
@@ -102,7 +102,7 @@ const GRADE_OPTIONS = [
 ];
 
 const LOSS_REASONS = [
-  { value: '', label: '—' },
+  { value: '', label: '\u2014' },
   { value: 'Lane diff', label: 'Lane' },
   { value: 'Jungle diff', label: 'Jungle' },
   { value: 'My mistake', label: 'My fault' },
@@ -164,6 +164,7 @@ function StatStepper({ label, value, onChange }: { label: string; value: number;
 
 function generateSessionId() { return crypto.randomUUID(); }
 
+// ─── Single-match prompt ──────────────────────────────────────────────────────
 function buildPrompt(match: Match): string {
   return `You are a Diamond-level Wild Rift coach. Analyze this ADC match and provide:
 1. **Performance Summary**: Overall assessment (2-3 sentences)
@@ -181,12 +182,116 @@ Match data:
 Provide honest, constructive feedback focused on improvement.`;
 }
 
+// ─── Multi-game batch prompt ──────────────────────────────────────────────────
+function buildBatchPrompt(matches: Match[], count: number | 'all'): string {
+  const selected = count === 'all' ? [...matches] : matches.slice(-count);
+  const wins = selected.filter(m => m.win).length;
+  const losses = selected.length - wins;
+  const wr = selected.length ? Math.round((wins / selected.length) * 100) : 0;
+
+  const kdaValues = selected.map(m => {
+    const p = m.k_d_a.split('/').map(n => parseInt(n, 10) || 0);
+    return { k: p[0] ?? 0, d: p[1] ?? 0, a: p[2] ?? 0 };
+  });
+  const totalK = kdaValues.reduce((s, v) => s + v.k, 0);
+  const totalD = kdaValues.reduce((s, v) => s + v.d, 0);
+  const totalA = kdaValues.reduce((s, v) => s + v.a, 0);
+  const avgK = (totalK / selected.length).toFixed(1);
+  const avgD = (totalD / selected.length).toFixed(1);
+  const avgA = (totalA / selected.length).toFixed(1);
+  const kdaRatio = totalD > 0 ? ((totalK + totalA) / totalD).toFixed(2) : 'Perfect';
+
+  const kpValues = selected.filter(m => m.kill_participation != null).map(m => m.kill_participation!);
+  const avgKP = kpValues.length ? Math.round(kpValues.reduce((s, v) => s + v, 0) / kpValues.length) : null;
+
+  const durValues = selected.filter(m => m.game_duration).map(m => m.game_duration!);
+  const avgDur = durValues.length ? Math.round(durValues.reduce((s, v) => s + v, 0) / durValues.length) : null;
+
+  const fbMatches = selected.filter(m => m.first_blood !== null && m.first_blood !== undefined);
+  const fbRate = fbMatches.length
+    ? Math.round((fbMatches.filter(m => m.first_blood).length / fbMatches.length) * 100)
+    : null;
+
+  const champMap = new Map<string, { wins: number; total: number }>();
+  selected.forEach(m => {
+    const c = champMap.get(m.champion) || { wins: 0, total: 0 };
+    champMap.set(m.champion, { wins: c.wins + (m.win ? 1 : 0), total: c.total + 1 });
+  });
+  const champBreakdown = Array.from(champMap.entries())
+    .sort((a, b) => b[1].total - a[1].total)
+    .map(([name, s]) => `${name} ${s.total}G ${Math.round((s.wins / s.total) * 100)}%WR`)
+    .join(' | ');
+
+  const gradeMap = new Map<string, number>();
+  selected.filter(m => m.performance_grade).forEach(m => {
+    gradeMap.set(m.performance_grade!, (gradeMap.get(m.performance_grade!) || 0) + 1);
+  });
+  const gradeBreakdown = Array.from(gradeMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([g, n]) => `${g} x${n}`).join(' | ');
+
+  const lrMap = new Map<string, number>();
+  selected.filter(m => !m.win && m.loss_reason).forEach(m => {
+    lrMap.set(m.loss_reason!, (lrMap.get(m.loss_reason!) || 0) + 1);
+  });
+  const lrBreakdown = Array.from(lrMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([r, n]) => `${r} x${n}`).join(', ');
+
+  let streak = 0;
+  const lastResult = selected[selected.length - 1]?.win;
+  for (let i = selected.length - 1; i >= 0; i--) {
+    if (selected[i].win === lastResult) streak++;
+    else break;
+  }
+  const streakLabel = streak >= 2 ? ` | Currently: ${streak}-game ${lastResult ? 'win' : 'loss'} streak` : '';
+
+  const dateFrom = new Date(selected[0].created_at).toLocaleDateString();
+  const dateTo = new Date(selected[selected.length - 1].created_at).toLocaleDateString();
+
+  const matchLines = [...selected].reverse().map((m, i) => {
+    const parts = [
+      `G${i + 1}`,
+      m.champion,
+      m.win ? '\u2713WIN' : '\u00d7LOSS',
+      m.k_d_a + (m.kill_participation ? ` KP${m.kill_participation}%` : ''),
+      m.performance_grade || '',
+      m.game_duration ? `${m.game_duration}m` : '',
+      m.my_support ? `w/${m.my_support}` : '',
+      (m.enemy_adc || m.enemy_support) ? `vs ${m.enemy_adc || '?'}+${m.enemy_support || '?'}` : '',
+      !m.win && m.loss_reason ? `[${m.loss_reason}]` : '',
+      m.notes ? `"${m.notes}"` : '',
+    ].filter(Boolean);
+    return parts.join(' | ');
+  }).join('\n');
+
+  return `You are a Diamond-level Wild Rift coach. Analyze these ${selected.length} ADC matches for deep multi-game patterns:
+
+1. **Playstyle Profile**: What kind of ADC player am I based on this data?
+2. **Recurring Patterns**: Consistent strengths and weaknesses across games
+3. **Biggest Improvement Area**: Single highest-impact thing to work on
+4. **Champion Pool Notes**: Patterns per champion — what to play more/less of?
+5. **Actionable Goals**: 2-3 specific, concrete goals for the next session
+
+AGGREGATE STATS (${selected.length} games \u2014 ${dateFrom} to ${dateTo}):
+\u2022 Record: ${wins}W\u2013${losses}L (${wr}% WR)${streakLabel}
+\u2022 Avg KDA: ${avgK}/${avgD}/${avgA} (${kdaRatio} ratio)${avgKP !== null ? `  |  Avg KP: ${avgKP}%` : ''}${avgDur !== null ? `  |  Avg duration: ${avgDur}m` : ''}${fbRate !== null ? `  |  First blood rate: ${fbRate}%` : ''}
+\u2022 Champions: ${champBreakdown}${gradeBreakdown ? `\n\u2022 Grades: ${gradeBreakdown}` : ''}${lrBreakdown ? `\n\u2022 Loss causes: ${lrBreakdown}` : ''}
+
+MATCH LOG (most recent \u2192 oldest):
+${matchLines}
+
+Focus on patterns across games, not individual match breakdowns.`;
+}
+
 export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState('');
   const [statusType, setStatusType] = useState<'error' | 'success' | ''>('');
   const [copiedAt, setCopiedAt] = useState<string | null>(null);
+  const [batchCount, setBatchCount] = useState<5 | 10 | 20 | 'all'>(10);
+  const [batchCopied, setBatchCopied] = useState(false);
 
   const [champion, setChampion] = useState('');
   const [win, setWin] = useState(true);
@@ -278,8 +383,7 @@ export default function Dashboard() {
   };
 
   const openInPerplexity = (match: Match) => {
-    const prompt = buildPrompt(match);
-    window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(prompt)}`, '_blank');
+    window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(buildPrompt(match))}`, '_blank');
   };
 
   const copyPrompt = async (match: Match) => {
@@ -287,6 +391,20 @@ export default function Dashboard() {
       await navigator.clipboard.writeText(buildPrompt(match));
       setCopiedAt(match.created_at);
       setTimeout(() => setCopiedAt(null), 2000);
+    } catch {
+      setStatus('Could not access clipboard.'); setStatusType('error');
+    }
+  };
+
+  const openBatchInPerplexity = () => {
+    window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(buildBatchPrompt(matches, batchCount))}`, '_blank');
+  };
+
+  const copyBatchPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(buildBatchPrompt(matches, batchCount));
+      setBatchCopied(true);
+      setTimeout(() => setBatchCopied(false), 2000);
     } catch {
       setStatus('Could not access clipboard.'); setStatusType('error');
     }
@@ -348,7 +466,7 @@ export default function Dashboard() {
     <main className="wr-shell">
       <section className="wr-hero">
         <div>
-          <div className="wr-badge">ADC only · quick log</div>
+          <div className="wr-badge">ADC only \u00b7 quick log</div>
           <h1 className="wr-title">Wild Rift Tracker</h1>
           <p className="wr-subtitle">Apple-style, mobile-first, and much faster to fill in.</p>
         </div>
@@ -365,8 +483,8 @@ export default function Dashboard() {
         </div>
         {sessionId && (
           <div className="wr-sessionBanner">
-            <span>🎮 Session active</span>
-            <span className="wr-sessionRecord">{stats.sessionWins}W – {stats.sessionLosses}L</span>
+            <span>\ud83c\udfae Session active</span>
+            <span className="wr-sessionRecord">{stats.sessionWins}W \u2013 {stats.sessionLosses}L</span>
           </div>
         )}
       </section>
@@ -381,7 +499,6 @@ export default function Dashboard() {
         )}
         <form onSubmit={handleSubmit} className="wr-form">
 
-          {/* Rank */}
           <div>
             <label className="wr-label">Current rank &amp; marks</label>
             <div className="wr-rankPicker">
@@ -397,7 +514,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Champion */}
           <div>
             <label className="wr-label">ADC champions</label>
             <div className="wr-chipGrid">
@@ -405,14 +521,13 @@ export default function Dashboard() {
                 <button key={name} type="button"
                   className={`wr-chip ${champion === name ? 'is-selected' : ''}`}
                   onClick={() => setChampion(name)} aria-pressed={champion === name}>
-                  <span className={`wr-check ${champion === name ? 'is-selected' : ''}`}>✓</span>
+                  <span className={`wr-check ${champion === name ? 'is-selected' : ''}`}>\u2713</span>
                   {name}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Result */}
           <div className="wr-segmentWrap">
             <span className="wr-label">Result</span>
             <div className="wr-segment">
@@ -421,7 +536,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* KDA — 3 steppers */}
           <div>
             <label className="wr-label">KDA</label>
             <div className="wr-kdaGrid">
@@ -431,12 +545,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* KP % */}
           <div>
             <label className="wr-label">KP %</label>
             <input
-              type="text"
-              inputMode="numeric"
+              type="text" inputMode="numeric"
               value={killParticipation === 0 ? '' : String(killParticipation)}
               onChange={(e) => {
                 const v = e.target.value;
@@ -444,22 +556,16 @@ export default function Dashboard() {
                 const n = parseInt(v, 10);
                 if (!isNaN(n) && n >= 0 && n <= 100) setKillParticipation(n);
               }}
-              placeholder="0"
-              className="wr-input"
+              placeholder="0" className="wr-input"
             />
           </div>
 
-          {/* Performance grade */}
           <div className="wr-segmentWrap">
             <span className="wr-label">Performance</span>
             <div className="wr-segment wr-gradeSegment">
               {GRADE_OPTIONS.map((g) => (
                 <button key={g.value} type="button"
-                  className={`wr-segmentButton ${
-                    performanceGrade === g.value ? 'is-selected' : ''
-                  } ${
-                    g.value === 'MVP' ? 'is-mvp' : g.value === 'SVP' ? 'is-svp' : ''
-                  }`}
+                  className={`wr-segmentButton ${performanceGrade === g.value ? 'is-selected' : ''} ${g.value === 'MVP' ? 'is-mvp' : g.value === 'SVP' ? 'is-svp' : ''}`}
                   onClick={() => setPerformanceGrade(g.value)}>
                   {g.label}
                 </button>
@@ -467,7 +573,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Loss reason — only on defeat */}
           {!win && (
             <div className="wr-segmentWrap">
               <span className="wr-label">Why did you lose?</span>
@@ -483,7 +588,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Optional sections */}
           <details className="wr-details">
             <summary className="wr-label">Game timing &amp; performance</summary>
             <div className="wr-detailsContent">
@@ -493,7 +597,7 @@ export default function Dashboard() {
                 <div className="wr-segment wr-segmentThree">
                   <button type="button" className={`wr-segmentButton ${firstBlood === true ? 'is-selected' : ''}`} onClick={() => setFirstBlood(true)}>Got it</button>
                   <button type="button" className={`wr-segmentButton ${firstBlood === false ? 'is-selected' : ''}`} onClick={() => setFirstBlood(false)}>Gave it</button>
-                  <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>—</button>
+                  <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>{String.fromCharCode(8212)}</button>
                 </div>
               </div>
               <div className="wr-stepperGrid">
@@ -531,7 +635,7 @@ export default function Dashboard() {
               <div>
                 <label className="wr-label">My support</label>
                 <select value={mySupport} onChange={(e) => setMySupport(e.target.value)} className="wr-select">
-                  <option value="">—</option>
+                  <option value="">{String.fromCharCode(8212)}</option>
                   {SUPPORT_CHAMPIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
@@ -634,6 +738,42 @@ export default function Dashboard() {
 
         <div className="wr-card">
           <div className="wr-cardHeader compact"><div><h2>Recent matches</h2><p>Latest entries first.</p></div></div>
+
+          {/* ── Batch analysis panel ── */}
+          {matches.length >= 2 && (
+            <div className="wr-batchExport">
+              <div className="wr-batchExportHeader">
+                <span className="wr-batchExportTitle">\ud83d\udcca Multi-game analysis</span>
+                <span className="wr-batchExportSub">Identify trends &amp; playstyle patterns</span>
+              </div>
+              <div className="wr-batchCounts">
+                {([5, 10, 20, 'all'] as const).map((n) => (
+                  <button
+                    key={String(n)}
+                    type="button"
+                    className={`wr-batchCount ${batchCount === n ? 'is-selected' : ''}`}
+                    onClick={() => setBatchCount(n)}
+                    disabled={n !== 'all' && matches.length < n}
+                  >
+                    {n === 'all' ? `All ${matches.length}` : `Last ${n}`}
+                  </button>
+                ))}
+              </div>
+              <div className="wr-actionButtons" style={{ justifyContent: 'flex-start' }}>
+                <button type="button" onClick={openBatchInPerplexity} className="wr-perplexityButton">
+                  \ud83e\udd16 Analyze in Perplexity
+                </button>
+                <button
+                  type="button"
+                  onClick={copyBatchPrompt}
+                  className={`wr-copyButton ${batchCopied ? 'is-copied' : ''}`}
+                >
+                  {batchCopied ? '\u2713 Copied' : '\ud83d\udccb Copy prompt'}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="wr-historyList">
             {matches.length === 0 ? <div className="wr-emptyState">No matches logged yet.</div> : (
               matches.slice().reverse().map((match, index) => (
@@ -660,7 +800,7 @@ export default function Dashboard() {
                         </div>
                       )}
                       {!match.win && match.loss_reason && (
-                        <div className="wr-lossReasonTag">🟥 {match.loss_reason}</div>
+                        <div className="wr-lossReasonTag">\ud83d\udfe5 {match.loss_reason}</div>
                       )}
                       {match.notes && <div className="wr-matchNotes">{match.notes}</div>}
                       <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
@@ -672,18 +812,13 @@ export default function Dashboard() {
                       )}
                       {match.first_blood !== null && match.first_blood !== undefined && (
                         <div className={`wr-firstBlood ${match.first_blood ? 'is-positive' : 'is-negative'}`}>
-                          {match.first_blood ? '🩸 FB' : '💀 Gave FB'}
+                          {match.first_blood ? '\ud83e\ude78 FB' : '\ud83d\udc80 Gave FB'}
                         </div>
                       )}
                       <div className="wr-marks">{match.marks_in_division}/{getMaxMarks(match.rank_tier)}</div>
                       <div className="wr-actionButtons">
-                        <button
-                          type="button"
-                          onClick={() => openInPerplexity(match)}
-                          className="wr-perplexityButton"
-                          title="Open in Perplexity"
-                        >
-                          🤖 Ask AI
+                        <button type="button" onClick={() => openInPerplexity(match)} className="wr-perplexityButton" title="Open in Perplexity">
+                          \ud83e\udd16 Ask AI
                         </button>
                         <button
                           type="button"
@@ -691,7 +826,7 @@ export default function Dashboard() {
                           className={`wr-copyButton ${copiedAt === match.created_at ? 'is-copied' : ''}`}
                           title="Copy prompt to clipboard"
                         >
-                          {copiedAt === match.created_at ? '✓ Copied' : '📋 Copy'}
+                          {copiedAt === match.created_at ? '\u2713 Copied' : '\ud83d\udccb Copy'}
                         </button>
                       </div>
                     </div>
