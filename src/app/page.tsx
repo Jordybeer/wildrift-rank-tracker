@@ -30,7 +30,6 @@ type Match = {
   damage_dealt?: number;
   damage_taken?: number;
   cs_at_10?: number;
-  objective_participation?: number;
   dragons_taken?: number;
   barons_taken?: number;
   heralds_taken?: number;
@@ -44,8 +43,9 @@ const ADC_CHAMPIONS = [
 ];
 
 const SUPPORT_CHAMPIONS = [
-  'Alistar','Bard','Blitzcrank','Braum','Janna','Karma','Leona','Lulu','Lux','Morgana',
-  'Nami','Nautilus','Pyke','Rakan','Senna','Seraphine','Sona','Soraka','Tahm Kench','Thresh','Yuumi','Zilean',
+  'Alistar','Amumu','Bard','Blitzcrank','Brand','Braum','Galio','Janna','Karma','Kennen',
+  'Leona','Lulu','Lux','Malphite','Morgana','Nami','Nautilus','Pyke','Rakan','Senna',
+  'Seraphine','Sona','Soraka','Tahm Kench','Thresh',"Vel'Koz",'Yuumi','Zilean','Zyra',
 ];
 
 const TOP_CHAMPIONS = [
@@ -60,7 +60,7 @@ const JUNGLE_CHAMPIONS = [
 
 const MID_CHAMPIONS = [
   'Ahri','Akali','Akshan','Annie','Aurelion Sol','Brand','Cassiopeia','Diana','Fizz','Galio',
-  'Katarina','LeBlanc','Lux','Orianna','Syndra','Twisted Fate','Veigar','Viktor','Yasuo','Zed','Ziggs',
+  'Katarina','LeBlanc','Lux','Orianna','Syndra','Twisted Fate','Veigar',"Vel'Koz",'Viktor','Yasuo','Zed','Ziggs',
 ];
 
 const RANK_TIERS = [
@@ -122,6 +122,7 @@ const DDRAGON_KEY_OVERRIDES: Record<string, string> = {
   'Tahm Kench': 'TahmKench',
   'Twisted Fate': 'TwistedFate',
   'Xin Zhao': 'XinZhao',
+  "Vel'Koz": 'Velkoz',
 };
 
 function getChampionSplashUrl(champion: string): string {
@@ -144,18 +145,12 @@ function friendlySupabaseMessage(message: string) {
 }
 
 function StatStepper({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    if (raw === '') { onChange(0); return; }
-    const n = parseInt(raw, 10);
-    if (!isNaN(n) && n >= 0) onChange(n);
-  };
   return (
     <div className="wr-stepper">
       <span className="wr-label">{label}</span>
       <div className="wr-stepperControls">
         <button type="button" className="wr-stepperButton" onClick={() => onChange(Math.max(0, value - 1))}>−</button>
-        <input type="text" inputMode="numeric" value={value === 0 ? '' : String(value)} placeholder="0" onChange={handleChange} className="wr-stepperValue" />
+        <span className="wr-stepperValue">{value}</span>
         <button type="button" className="wr-stepperButton" onClick={() => onChange(value + 1)}>+</button>
       </div>
     </div>
@@ -164,7 +159,6 @@ function StatStepper({ label, value, onChange }: { label: string; value: number;
 
 function generateSessionId() { return crypto.randomUUID(); }
 
-// ─── Single-match prompt ──────────────────────────────────────────────────────
 function buildPrompt(match: Match): string {
   return `You are a Diamond-level Wild Rift coach. Analyze this ADC match and provide:
 1. **Performance Summary**: Overall assessment (2-3 sentences)
@@ -177,12 +171,11 @@ Match data:
 - Result: ${match.win ? 'Victory' : 'Defeat'}
 - KDA: ${match.k_d_a}${match.kill_participation != null ? `\n- Kill participation: ${match.kill_participation}%` : ''}${match.performance_grade ? `\n- Grade: ${match.performance_grade}` : ''}${!match.win && match.loss_reason ? `\n- Loss reason: ${match.loss_reason}` : ''}
 - Duration: ${match.game_duration ? `${match.game_duration} minutes` : 'not recorded'}
-- Rank: ${RANK_TIERS.find(t => t.value === match.rank_tier)?.label}${match.my_support ? `\n- My support: ${match.my_support}` : ''}${match.enemy_adc || match.enemy_support ? `\n- Enemy lane: ${match.enemy_adc || '?'} + ${match.enemy_support || '?'}` : ''}${match.first_blood !== null && match.first_blood !== undefined ? `\n- First blood: ${match.first_blood ? 'Got it' : 'Gave it away'}` : ''}${match.turret_kills ? `\n- Turrets: ${match.turret_kills}` : ''}${match.vision_score ? `\n- Vision score: ${match.vision_score}` : ''}${match.cs_at_10 ? `\n- CS at 10 min: ${match.cs_at_10}` : ''}${match.gold_earned ? `\n- Gold earned: ${match.gold_earned}k` : ''}${match.damage_dealt ? `\n- Damage dealt: ${match.damage_dealt}k` : ''}${match.damage_taken ? `\n- Damage taken: ${match.damage_taken}k` : ''}${match.dragons_taken ? `\n- Dragons: ${match.dragons_taken}` : ''}${match.barons_taken ? `\n- Barons: ${match.barons_taken}` : ''}${match.heralds_taken ? `\n- Heralds: ${match.heralds_taken}` : ''}${match.objective_participation ? `\n- Objective participation: ${match.objective_participation}%` : ''}${match.premade_with ? `\n- Playing with: ${match.premade_with}` : ''}${match.notes ? `\n- Player notes: ${match.notes}` : ''}
+- Rank: ${RANK_TIERS.find(t => t.value === match.rank_tier)?.label}${match.my_support ? `\n- My support: ${match.my_support}` : ''}${match.enemy_adc || match.enemy_support ? `\n- Enemy lane: ${match.enemy_adc || '?'} + ${match.enemy_support || '?'}` : ''}${match.first_blood !== null && match.first_blood !== undefined ? `\n- First blood: ${match.first_blood ? 'Got it' : 'Gave it away'}` : ''}${match.turret_kills ? `\n- Turrets: ${match.turret_kills}` : ''}${match.vision_score ? `\n- Vision score: ${match.vision_score}` : ''}${match.cs_at_10 ? `\n- CS at 10 min: ${match.cs_at_10}` : ''}${match.gold_earned ? `\n- Gold earned: ${match.gold_earned}k` : ''}${match.damage_dealt ? `\n- Damage dealt: ${match.damage_dealt}k` : ''}${match.damage_taken ? `\n- Damage taken: ${match.damage_taken}k` : ''}${match.dragons_taken ? `\n- Dragons: ${match.dragons_taken}` : ''}${match.barons_taken ? `\n- Barons: ${match.barons_taken}` : ''}${match.heralds_taken ? `\n- Heralds: ${match.heralds_taken}` : ''}${match.premade_with ? `\n- Playing with: ${match.premade_with}` : ''}${match.notes ? `\n- Player notes: ${match.notes}` : ''}
 
 Provide honest, constructive feedback focused on improvement.`;
 }
 
-// ─── Multi-game batch prompt ──────────────────────────────────────────────────
 function buildBatchPrompt(matches: Match[], count: number | 'all'): string {
   const selected = count === 'all' ? [...matches] : matches.slice(-count);
   const wins = selected.filter(m => m.win).length;
@@ -270,7 +263,7 @@ function buildBatchPrompt(matches: Match[], count: number | 'all'): string {
 1. **Playstyle Profile**: What kind of ADC player am I based on this data?
 2. **Recurring Patterns**: Consistent strengths and weaknesses across games
 3. **Biggest Improvement Area**: Single highest-impact thing to work on
-4. **Champion Pool Notes**: Patterns per champion — what to play more/less of?
+4. **Champion Pool Notes**: Patterns per champion \u2014 what to play more/less of?
 5. **Actionable Goals**: 2-3 specific, concrete goals for the next session
 
 AGGREGATE STATS (${selected.length} games \u2014 ${dateFrom} to ${dateTo}):
@@ -290,7 +283,6 @@ export default function Dashboard() {
   const [status, setStatus] = useState('');
   const [statusType, setStatusType] = useState<'error' | 'success' | ''>('');
   const [copiedAt, setCopiedAt] = useState<string | null>(null);
-  const [batchCount, setBatchCount] = useState<5 | 10 | 20 | 'all'>(10);
   const [batchCopied, setBatchCopied] = useState(false);
 
   const [champion, setChampion] = useState('');
@@ -319,11 +311,18 @@ export default function Dashboard() {
   const [damageDealt, setDamageDealt] = useState(0);
   const [damageTaken, setDamageTaken] = useState(0);
   const [csAt10, setCsAt10] = useState(0);
-  const [objectiveParticipation, setObjectiveParticipation] = useState(0);
   const [dragonsTaken, setDragonsTaken] = useState(0);
   const [baronsTaken, setBaronsTaken] = useState(0);
   const [heraldsTaken, setHeraldsTaken] = useState(0);
   const [notes, setNotes] = useState('');
+
+  const smartBatchDefault = useMemo(() => {
+    if (matches.length >= 10) return 10;
+    if (matches.length >= 5) return 5;
+    return 'all' as const;
+  }, [matches.length]);
+
+  const [batchCount, setBatchCount] = useState<5 | 10 | 20 | 'all'>(smartBatchDefault);
 
   useEffect(() => { fetchMatches(); }, []);
 
@@ -361,6 +360,8 @@ export default function Dashboard() {
         .sort((a, b) => b.games - a.games),
     };
   }, [matches]);
+
+  const reversedMatches = useMemo(() => matches.slice().reverse(), [matches]);
 
   const fetchMatches = async () => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
@@ -438,7 +439,7 @@ export default function Dashboard() {
         session_id: sessionId, game_duration: gameDuration || null, first_blood: firstBlood,
         turret_kills: turretKills || null, vision_score: visionScore || null, premade_with: premadeWith || null,
         gold_earned: goldEarned || null, damage_dealt: damageDealt || null, damage_taken: damageTaken || null,
-        cs_at_10: csAt10 || null, objective_participation: objectiveParticipation || null,
+        cs_at_10: csAt10 || null,
         dragons_taken: dragonsTaken || null, barons_taken: baronsTaken || null, heralds_taken: heraldsTaken || null,
         notes: notes || null,
       }]);
@@ -450,7 +451,7 @@ export default function Dashboard() {
       setKillParticipation(0); setPerformanceGrade(''); setLossReason('');
       setMySupport(''); setEnemyAdc(''); setEnemySupport(''); setEnemyTop(''); setEnemyJungle(''); setEnemyMid('');
       setGameDuration(0); setFirstBlood(null); setTurretKills(0); setVisionScore(0);
-      setGoldEarned(0); setDamageDealt(0); setDamageTaken(0); setCsAt10(0); setObjectiveParticipation(0);
+      setGoldEarned(0); setDamageDealt(0); setDamageTaken(0); setCsAt10(0);
       setDragonsTaken(0); setBaronsTaken(0); setHeraldsTaken(0); setNotes('');
       await fetchMatches();
     } catch (err: any) {
@@ -610,7 +611,6 @@ export default function Dashboard() {
                 <StatStepper label="Barons" value={baronsTaken} onChange={setBaronsTaken} />
                 <StatStepper label="Heralds" value={heraldsTaken} onChange={setHeraldsTaken} />
               </div>
-              <StatStepper label="Obj participation %" value={objectiveParticipation} onChange={setObjectiveParticipation} />
             </div>
           </details>
 
@@ -739,7 +739,6 @@ export default function Dashboard() {
         <div className="wr-card">
           <div className="wr-cardHeader compact"><div><h2>Recent matches</h2><p>Latest entries first.</p></div></div>
 
-          {/* ── Batch analysis panel ── */}
           {matches.length >= 2 && (
             <div className="wr-batchExport">
               <div className="wr-batchExportHeader">
@@ -776,7 +775,7 @@ export default function Dashboard() {
 
           <div className="wr-historyList">
             {matches.length === 0 ? <div className="wr-emptyState">No matches logged yet.</div> : (
-              matches.slice().reverse().map((match, index) => (
+              reversedMatches.map((match, index) => (
                 <article key={index} className={`wr-matchCard ${match.win ? 'is-win' : 'is-loss'}`}>
                   <div className="wr-championBanner" style={{ backgroundImage: `url(${getChampionSplashUrl(match.champion)})` }} />
                   <div className="wr-matchContent">

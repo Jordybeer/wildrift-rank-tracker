@@ -19,6 +19,7 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -243,7 +244,6 @@ button {
   gap: 10px;
 }
 
-/* KDA always 3 cols regardless of screen size */
 .wr-kdaGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -384,7 +384,20 @@ button {
   font-size: 24px;
 }
 
-.wr-stepperValue,
+.wr-stepperValue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .wr-input,
 .wr-inlineInput,
 .wr-select {
@@ -404,10 +417,6 @@ button {
   color: white;
   resize: vertical;
   min-height: 80px;
-}
-
-.wr-stepperValue {
-  text-align: center;
 }
 
 .wr-chipRow {
@@ -643,7 +652,6 @@ button {
   letter-spacing: 0.04em;
 }
 
-/* Grade badge */
 .wr-gradeBadge {
   display: inline-flex;
   align-items: center;
@@ -686,7 +694,6 @@ button {
   margin-bottom: 4px;
 }
 
-/* Loss reason tag */
 .wr-lossReasonTag {
   display: inline-block;
   margin-bottom: 4px;
@@ -723,7 +730,6 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* KP badge */
 .wr-kpBadge {
   font-size: 12px;
   font-weight: 700;
@@ -749,7 +755,6 @@ button {
   color: var(--wr-blue);
 }
 
-/* Action buttons row */
 .wr-actionButtons {
   display: flex;
   gap: 6px;
@@ -758,7 +763,6 @@ button {
   margin-top: 6px;
 }
 
-/* Open in Perplexity */
 .wr-perplexityButton {
   padding: 8px 11px;
   border-radius: 12px;
@@ -777,7 +781,6 @@ button {
   transform: translateY(-1px);
 }
 
-/* Copy prompt button */
 .wr-copyButton {
   padding: 8px 11px;
   border-radius: 12px;
@@ -801,7 +804,6 @@ button {
   color: #6ee7b7;
 }
 
-/* ── Batch analysis panel ── */
 .wr-batchExport {
   display: grid;
   gap: 12px;
