@@ -8,6 +8,7 @@ type Match = {
   role: string;
   win: boolean;
   k_d_a: string;
+  performance_grade?: string;
   rank_tier: string;
   marks_in_division: number;
   created_at: string;
@@ -36,120 +37,28 @@ type Match = {
 };
 
 const ADC_CHAMPIONS = [
-  'Ashe',
-  'Caitlyn',
-  'Draven',
-  'Ezreal',
-  'Jhin',
-  'Jinx',
-  "Kai'Sa",
-  'Kalista',
-  'Lucian',
-  'Miss Fortune',
-  'Samira',
-  'Sivir',
-  'Smolder',
-  'Tristana',
-  'Twitch',
-  'Varus',
-  'Vayne',
-  'Xayah',
-  'Zeri',
+  'Ashe','Caitlyn','Draven','Ezreal','Jhin','Jinx',"Kai'Sa",'Kalista','Lucian',
+  'Miss Fortune','Samira','Sivir','Smolder','Tristana','Twitch','Varus','Vayne','Xayah','Zeri',
 ];
 
 const SUPPORT_CHAMPIONS = [
-  'Alistar',
-  'Bard',
-  'Blitzcrank',
-  'Braum',
-  'Janna',
-  'Karma',
-  'Leona',
-  'Lulu',
-  'Lux',
-  'Morgana',
-  'Nami',
-  'Nautilus',
-  'Pyke',
-  'Rakan',
-  'Senna',
-  'Seraphine',
-  'Sona',
-  'Soraka',
-  'Tahm Kench',
-  'Thresh',
-  'Yuumi',
-  'Zilean',
+  'Alistar','Bard','Blitzcrank','Braum','Janna','Karma','Leona','Lulu','Lux','Morgana',
+  'Nami','Nautilus','Pyke','Rakan','Senna','Seraphine','Sona','Soraka','Tahm Kench','Thresh','Yuumi','Zilean',
 ];
 
 const TOP_CHAMPIONS = [
-  'Aatrox',
-  'Camille',
-  'Darius',
-  'Fiora',
-  'Garen',
-  'Gragas',
-  'Gwen',
-  'Irelia',
-  'Jax',
-  'Jayce',
-  'Kennen',
-  'Malphite',
-  'Nasus',
-  'Olaf',
-  'Pantheon',
-  'Renekton',
-  'Riven',
-  'Sett',
-  'Shen',
-  'Teemo',
-  'Wukong',
-  'Yasuo',
+  'Aatrox','Camille','Darius','Fiora','Garen','Gragas','Gwen','Irelia','Jax','Jayce',
+  'Kennen','Malphite','Nasus','Olaf','Pantheon','Renekton','Riven','Sett','Shen','Teemo','Wukong','Yasuo',
 ];
 
 const JUNGLE_CHAMPIONS = [
-  'Amumu',
-  'Diana',
-  'Ekko',
-  'Evelynn',
-  'Graves',
-  'Jarvan IV',
-  'Kha\'Zix',
-  'Lee Sin',
-  'Master Yi',
-  'Nunu',
-  'Rammus',
-  'Rek\'Sai',
-  'Rengar',
-  'Shyvana',
-  'Vi',
-  'Warwick',
-  'Wukong',
-  'Xin Zhao',
+  'Amumu','Diana','Ekko','Evelynn','Graves','Jarvan IV',"Kha'Zix",'Lee Sin','Master Yi',
+  'Nunu','Rammus',"Rek'Sai",'Rengar','Shyvana','Vi','Warwick','Wukong','Xin Zhao',
 ];
 
 const MID_CHAMPIONS = [
-  'Ahri',
-  'Akali',
-  'Akshan',
-  'Annie',
-  'Aurelion Sol',
-  'Brand',
-  'Cassiopeia',
-  'Diana',
-  'Fizz',
-  'Galio',
-  'Katarina',
-  'LeBlanc',
-  'Lux',
-  'Orianna',
-  'Syndra',
-  'Twisted Fate',
-  'Veigar',
-  'Viktor',
-  'Yasuo',
-  'Zed',
-  'Ziggs',
+  'Ahri','Akali','Akshan','Annie','Aurelion Sol','Brand','Cassiopeia','Diana','Fizz','Galio',
+  'Katarina','LeBlanc','Lux','Orianna','Syndra','Twisted Fate','Veigar','Viktor','Yasuo','Zed','Ziggs',
 ];
 
 const RANK_TIERS = [
@@ -182,15 +91,23 @@ const RANK_TIERS = [
   { value: 'CHALLENGER', label: 'Challenger', marks: 8 },
 ];
 
+const GRADE_OPTIONS = [
+  { value: '', label: '—' },
+  { value: 'A', label: 'A' },
+  { value: 'S', label: 'S' },
+  { value: 'MVP', label: 'MVP' },
+  { value: 'SVP', label: 'SVP' },
+];
+
 const DDRAGON_KEY_OVERRIDES: Record<string, string> = {
   "Kai'Sa": 'Kaisa',
   'Miss Fortune': 'MissFortune',
   'Aurelion Sol': 'AurelionSol',
   'Jarvan IV': 'JarvanIV',
-  'Kha\'Zix': 'Khazix',
+  "Kha'Zix": 'Khazix',
   'Lee Sin': 'LeeSin',
   'Master Yi': 'MasterYi',
-  'Rek\'Sai': 'RekSai',
+  "Rek'Sai": 'RekSai',
   'Tahm Kench': 'TahmKench',
   'Twisted Fate': 'TwistedFate',
   'Xin Zhao': 'XinZhao',
@@ -209,66 +126,32 @@ function friendlySupabaseMessage(message: string) {
   if (message.includes("Could not find the table 'public.matches'")) {
     return 'Supabase table missing. Run the updated supabase/schema.sql in SQL Editor, then disable RLS on the matches table.';
   }
-  if (message.includes("column") && message.includes("does not exist")) {
-    return 'Database schema is outdated. Drop the matches table and run the new supabase/schema.sql again, or manually add missing columns via Table Editor.';
+  if (message.includes('column') && message.includes('does not exist')) {
+    return 'Database schema is outdated. Add the missing column via Supabase Table Editor, or drop the matches table and re-run supabase/schema.sql.';
   }
   return message;
 }
 
-// Stepper with clearable input — shows empty when value is 0, snaps back on blur
-function StatStepper({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (next: number) => void;
-}) {
+function StatStepper({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    if (raw === '') {
-      onChange(0);
-      return;
-    }
+    if (raw === '') { onChange(0); return; }
     const n = parseInt(raw, 10);
     if (!isNaN(n) && n >= 0) onChange(n);
   };
-
   return (
     <div className="wr-stepper">
       <span className="wr-label">{label}</span>
       <div className="wr-stepperControls">
-        <button
-          type="button"
-          className="wr-stepperButton"
-          onClick={() => onChange(Math.max(0, value - 1))}
-        >
-          −
-        </button>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={value === 0 ? '' : String(value)}
-          placeholder="0"
-          onChange={handleChange}
-          className="wr-stepperValue"
-        />
-        <button
-          type="button"
-          className="wr-stepperButton"
-          onClick={() => onChange(value + 1)}
-        >
-          +
-        </button>
+        <button type="button" className="wr-stepperButton" onClick={() => onChange(Math.max(0, value - 1))}>−</button>
+        <input type="text" inputMode="numeric" value={value === 0 ? '' : String(value)} placeholder="0" onChange={handleChange} className="wr-stepperValue" />
+        <button type="button" className="wr-stepperButton" onClick={() => onChange(value + 1)}>+</button>
       </div>
     </div>
   );
 }
 
-function generateSessionId() {
-  return crypto.randomUUID();
-}
+function generateSessionId() { return crypto.randomUUID(); }
 
 function exportMatchForAI(match: Match) {
   const data = {
@@ -282,6 +165,7 @@ Match data:
 - Champion: ${match.champion}
 - Result: ${match.win ? 'Victory' : 'Defeat'}
 - KDA: ${match.k_d_a}
+${match.performance_grade ? `- Grade: ${match.performance_grade}` : ''}
 - Duration: ${match.game_duration ? `${match.game_duration} minutes` : 'not recorded'}
 - Rank: ${RANK_TIERS.find(t => t.value === match.rank_tier)?.label}
 ${match.my_support ? `- My support: ${match.my_support}` : ''}
@@ -305,39 +189,25 @@ Provide honest, constructive feedback focused on improvement.`,
       champion: match.champion,
       result: match.win ? 'Victory' : 'Defeat',
       kda: match.k_d_a,
+      performance_grade: match.performance_grade,
       rank: RANK_TIERS.find(t => t.value === match.rank_tier)?.label,
       game_duration: match.game_duration,
       first_blood: match.first_blood,
       my_support: match.my_support,
-      enemy_lane: {
-        adc: match.enemy_adc,
-        support: match.enemy_support,
-      },
-      enemy_team: {
-        top: match.enemy_top,
-        jungle: match.enemy_jungle,
-        mid: match.enemy_mid,
-      },
+      enemy_lane: { adc: match.enemy_adc, support: match.enemy_support },
+      enemy_team: { top: match.enemy_top, jungle: match.enemy_jungle, mid: match.enemy_mid },
       stats: {
-        turret_kills: match.turret_kills,
-        vision_score: match.vision_score,
-        cs_at_10: match.cs_at_10,
-        gold_earned: match.gold_earned,
-        damage_dealt: match.damage_dealt,
-        damage_taken: match.damage_taken,
+        turret_kills: match.turret_kills, vision_score: match.vision_score,
+        cs_at_10: match.cs_at_10, gold_earned: match.gold_earned,
+        damage_dealt: match.damage_dealt, damage_taken: match.damage_taken,
         objective_participation: match.objective_participation,
       },
-      objectives: {
-        dragons_taken: match.dragons_taken,
-        barons_taken: match.barons_taken,
-        heralds_taken: match.heralds_taken,
-      },
+      objectives: { dragons_taken: match.dragons_taken, barons_taken: match.barons_taken, heralds_taken: match.heralds_taken },
       premade_with: match.premade_with,
       notes: match.notes,
       timestamp: match.created_at,
     },
   };
-
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -355,9 +225,8 @@ export default function Dashboard() {
 
   const [champion, setChampion] = useState('');
   const [win, setWin] = useState(true);
-  const [kills, setKills] = useState(0);
-  const [deaths, setDeaths] = useState(0);
-  const [assists, setAssists] = useState(0);
+  const [kda, setKda] = useState('');
+  const [performanceGrade, setPerformanceGrade] = useState('');
   const [currentRank, setCurrentRank] = useState('DIAMOND_IV');
   const [currentMarks, setCurrentMarks] = useState(2);
   const [mySupport, setMySupport] = useState('');
@@ -382,9 +251,7 @@ export default function Dashboard() {
   const [heraldsTaken, setHeraldsTaken] = useState(0);
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    fetchMatches();
-  }, []);
+  useEffect(() => { fetchMatches(); }, []);
 
   const stats = useMemo(() => {
     const totalMatches = matches.length;
@@ -413,10 +280,10 @@ export default function Dashboard() {
     });
     return {
       supportWinRates: Array.from(supportWinRates.entries())
-        .map(([name, stats]) => ({ name, winRate: Math.round((stats.wins / stats.total) * 100), games: stats.total }))
+        .map(([name, s]) => ({ name, winRate: Math.round((s.wins / s.total) * 100), games: s.total }))
         .sort((a, b) => b.games - a.games),
       enemyWinRates: Array.from(enemyWinRates.entries())
-        .map(([name, stats]) => ({ name, winRate: Math.round((stats.wins / stats.total) * 100), games: stats.total }))
+        .map(([name, s]) => ({ name, winRate: Math.round((s.wins / s.total) * 100), games: s.total }))
         .sort((a, b) => b.games - a.games),
     };
   }, [matches]);
@@ -424,14 +291,9 @@ export default function Dashboard() {
   const fetchMatches = async () => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
     const { data, error } = await supabase.from('matches').select('*').order('created_at', { ascending: true });
-    if (error) {
-      setStatus(friendlySupabaseMessage(error.message));
-      setStatusType('error');
-      return;
-    }
+    if (error) { setStatus(friendlySupabaseMessage(error.message)); setStatusType('error'); return; }
     if (data && data.length > 0) {
-      let cumulativeMarks = 0;
-      const chartData = data.map((m) => { cumulativeMarks = m.marks_in_division; return { ...m, cumulativeMarks }; });
+      const chartData = data.map((m) => ({ ...m, cumulativeMarks: m.marks_in_division }));
       setMatches(chartData);
       const latest = data[data.length - 1];
       setCurrentRank(latest.rank_tier);
@@ -441,42 +303,31 @@ export default function Dashboard() {
   };
 
   const handleStartSession = () => {
-    const newSessionId = generateSessionId();
-    setSessionId(newSessionId);
-    setStatus('New session started!');
-    setStatusType('success');
+    setSessionId(generateSessionId());
+    setStatus('New session started!'); setStatusType('success');
     setTimeout(() => { setStatus(''); setStatusType(''); }, 2000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    setStatus('');
-    setStatusType('');
+    setSubmitting(true); setStatus(''); setStatusType('');
     try {
       if (!champion) {
-        setStatus('Pick your ADC champion first.');
-        setStatusType('error');
-        setSubmitting(false);
-        return;
+        setStatus('Pick your ADC champion first.'); setStatusType('error'); setSubmitting(false); return;
       }
       const maxMarks = getMaxMarks(currentRank);
-      let newMarks = currentMarks + (win ? 1 : -1);
+      const newMarks = currentMarks + (win ? 1 : -1);
       if (newMarks < 0) {
-        setStatus('You would demote. Change your rank tier manually first, then log the match.');
-        setStatusType('error');
-        setSubmitting(false);
-        return;
+        setStatus('You would demote. Change your rank tier manually first, then log the match.'); setStatusType('error'); setSubmitting(false); return;
       }
       if (newMarks > maxMarks) {
-        setStatus('You would rank up. Change your rank tier to the next division first, then log the match.');
-        setStatusType('error');
-        setSubmitting(false);
-        return;
+        setStatus('You would rank up. Change your rank tier to the next division first, then log the match.'); setStatusType('error'); setSubmitting(false); return;
       }
+      const kdaNorm = kda.trim() || '0/0/0';
       const { error } = await supabase.from('matches').insert([{
         champion, role: 'adc', win,
-        k_d_a: `${kills}/${deaths}/${assists}`,
+        k_d_a: kdaNorm,
+        performance_grade: performanceGrade || null,
         rank_tier: currentRank, marks_in_division: newMarks,
         my_support: mySupport || null, enemy_adc: enemyAdc || null, enemy_support: enemySupport || null,
         enemy_top: enemyTop || null, enemy_jungle: enemyJungle || null, enemy_mid: enemyMid || null,
@@ -487,24 +338,18 @@ export default function Dashboard() {
         dragons_taken: dragonsTaken || null, barons_taken: baronsTaken || null, heralds_taken: heraldsTaken || null,
         notes: notes || null,
       }]);
-      if (error) {
-        setStatus(friendlySupabaseMessage(error.message));
-        setStatusType('error');
-        setSubmitting(false);
-        return;
-      }
+      if (error) { setStatus(friendlySupabaseMessage(error.message)); setStatusType('error'); setSubmitting(false); return; }
       setStatus(`Logged ${champion} successfully. Marks: ${newMarks}/${maxMarks}`);
       setStatusType('success');
       setCurrentMarks(newMarks);
-      setChampion(''); setWin(true); setKills(0); setDeaths(0); setAssists(0);
+      setChampion(''); setWin(true); setKda(''); setPerformanceGrade('');
       setMySupport(''); setEnemyAdc(''); setEnemySupport(''); setEnemyTop(''); setEnemyJungle(''); setEnemyMid('');
       setGameDuration(0); setFirstBlood(null); setTurretKills(0); setVisionScore(0);
       setGoldEarned(0); setDamageDealt(0); setDamageTaken(0); setCsAt10(0); setObjectiveParticipation(0);
       setDragonsTaken(0); setBaronsTaken(0); setHeraldsTaken(0); setNotes('');
       await fetchMatches();
-    } catch (error: any) {
-      setStatus(error?.message || 'Unexpected error.');
-      setStatusType('error');
+    } catch (err: any) {
+      setStatus(err?.message || 'Unexpected error.'); setStatusType('error');
     } finally {
       setSubmitting(false);
     }
@@ -548,11 +393,13 @@ export default function Dashboard() {
           <button type="button" onClick={handleStartSession} className="wr-secondaryButton">Start gaming session</button>
         )}
         <form onSubmit={handleSubmit} className="wr-form">
+
+          {/* Rank */}
           <div>
             <label className="wr-label">Current rank &amp; marks</label>
             <div className="wr-rankPicker">
               <select value={currentRank} onChange={(e) => setCurrentRank(e.target.value)} className="wr-select">
-                {RANK_TIERS.map((tier) => <option key={tier.value} value={tier.value}>{tier.label}</option>)}
+                {RANK_TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
               <div className="wr-marksInput">
                 <input type="number" inputMode="numeric" min={0} max={maxMarks} value={currentMarks}
@@ -563,6 +410,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Champion */}
           <div>
             <label className="wr-label">ADC champions</label>
             <div className="wr-chipGrid">
@@ -577,6 +425,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Result */}
           <div className="wr-segmentWrap">
             <span className="wr-label">Result</span>
             <div className="wr-segment">
@@ -585,12 +434,41 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="wr-stepperGrid">
-            <StatStepper label="Kills" value={kills} onChange={setKills} />
-            <StatStepper label="Deaths" value={deaths} onChange={setDeaths} />
-            <StatStepper label="Assists" value={assists} onChange={setAssists} />
+          {/* KDA — single field */}
+          <div>
+            <label className="wr-label">KDA</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={kda}
+              onChange={(e) => setKda(e.target.value)}
+              placeholder="0/0/0"
+              className="wr-input wr-kdaInput"
+            />
           </div>
 
+          {/* Performance grade */}
+          <div className="wr-segmentWrap">
+            <span className="wr-label">Performance</span>
+            <div className="wr-segment wr-gradeSegment">
+              {GRADE_OPTIONS.map((g) => (
+                <button
+                  key={g.value}
+                  type="button"
+                  className={`wr-segmentButton wr-gradeButton ${
+                    performanceGrade === g.value ? 'is-selected' : ''
+                  } ${
+                    g.value === 'MVP' ? 'is-mvp' : g.value === 'SVP' ? 'is-svp' : ''
+                  }`}
+                  onClick={() => setPerformanceGrade(g.value)}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Optional sections */}
           <details className="wr-details">
             <summary className="wr-label">Game timing &amp; performance</summary>
             <div className="wr-detailsContent">
@@ -633,14 +511,13 @@ export default function Dashboard() {
             <div className="wr-detailsContent">
               <div>
                 <label className="wr-label">Premade with</label>
-                <input type="text" value={premadeWith} onChange={(e) => setPremadeWith(e.target.value)}
-                  placeholder="Friend's name or 'solo'" className="wr-input" />
+                <input type="text" value={premadeWith} onChange={(e) => setPremadeWith(e.target.value)} placeholder="Friend's name or 'solo'" className="wr-input" />
               </div>
               <div>
                 <label className="wr-label">My support</label>
                 <select value={mySupport} onChange={(e) => setMySupport(e.target.value)} className="wr-select">
                   <option value="">—</option>
-                  {SUPPORT_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                  {SUPPORT_CHAMPIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               <div>
@@ -648,11 +525,11 @@ export default function Dashboard() {
                 <div className="wr-enemyLane">
                   <select value={enemyAdc} onChange={(e) => setEnemyAdc(e.target.value)} className="wr-select">
                     <option value="">ADC</option>
-                    {ADC_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                    {ADC_CHAMPIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                   <select value={enemySupport} onChange={(e) => setEnemySupport(e.target.value)} className="wr-select">
                     <option value="">Support</option>
-                    {SUPPORT_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                    {SUPPORT_CHAMPIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
               </div>
@@ -660,16 +537,13 @@ export default function Dashboard() {
                 <label className="wr-label">Enemy team (optional)</label>
                 <div className="wr-enemyTeam">
                   <select value={enemyTop} onChange={(e) => setEnemyTop(e.target.value)} className="wr-select">
-                    <option value="">Top</option>
-                    {TOP_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                    <option value="">Top</option>{TOP_CHAMPIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                   <select value={enemyJungle} onChange={(e) => setEnemyJungle(e.target.value)} className="wr-select">
-                    <option value="">Jungle</option>
-                    {JUNGLE_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                    <option value="">Jungle</option>{JUNGLE_CHAMPIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                   <select value={enemyMid} onChange={(e) => setEnemyMid(e.target.value)} className="wr-select">
-                    <option value="">Mid</option>
-                    {MID_CHAMPIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                    <option value="">Mid</option>{MID_CHAMPIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
               </div>
@@ -680,8 +554,7 @@ export default function Dashboard() {
             <summary className="wr-label">Notes</summary>
             <div className="wr-detailsContent">
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g., 'tilted', 'hard carry', 'afk teammate'"
-                className="wr-textarea" rows={3} />
+                placeholder="e.g., 'tilted', 'hard carry', 'afk teammate'" className="wr-textarea" rows={3} />
             </div>
           </details>
 
@@ -757,6 +630,14 @@ export default function Dashboard() {
                         <strong>{match.champion}</strong>
                         <span className="wr-roleTag">ADC</span>
                         {match.game_duration && <span className="wr-durationTag">{match.game_duration}m</span>}
+                        {match.performance_grade && (
+                          <span className={`wr-gradeBadge ${
+                            match.performance_grade === 'MVP' ? 'is-mvp'
+                            : match.performance_grade === 'SVP' ? 'is-svp'
+                            : match.performance_grade === 'S' ? 'is-s'
+                            : 'is-a'
+                          }`}>{match.performance_grade}</span>
+                        )}
                       </div>
                       {match.my_support && (
                         <div className="wr-matchLane">
