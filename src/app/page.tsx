@@ -182,6 +182,27 @@ const RANK_TIERS = [
   { value: 'CHALLENGER', label: 'Challenger', marks: 8 },
 ];
 
+// Data Dragon uses PascalCase keys with no spaces/apostrophes
+const DDRAGON_KEY_OVERRIDES: Record<string, string> = {
+  "Kai'Sa": 'Kaisa',
+  'Miss Fortune': 'MissFortune',
+  'Aurelion Sol': 'AurelionSol',
+  'Jarvan IV': 'JarvanIV',
+  'Kha\'Zix': 'Khazix',
+  'Lee Sin': 'LeeSin',
+  'Master Yi': 'MasterYi',
+  'Rek\'Sai': 'RekSai',
+  'Tahm Kench': 'TahmKench',
+  'Twisted Fate': 'TwistedFate',
+  'Xin Zhao': 'XinZhao',
+  'Twisted Fate': 'TwistedFate',
+};
+
+function getChampionSplashUrl(champion: string): string {
+  const key = DDRAGON_KEY_OVERRIDES[champion] ?? champion.replace(/[^a-zA-Z]/g, '');
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${key}_0.jpg`;
+}
+
 function getMaxMarks(tier: string): number {
   return RANK_TIERS.find((t) => t.value === tier)?.marks || 5;
 }
@@ -907,9 +928,7 @@ export default function Dashboard() {
                   <article key={index} className={`wr-matchCard ${match.win ? 'is-win' : 'is-loss'}`}>
                     <div
                       className="wr-championBanner"
-                      style={{
-                        backgroundImage: `url(https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-splashes/${match.champion.toLowerCase().replace(/[^a-z]/g, '')}/0.jpg)`,
-                      }}
+                      style={{ backgroundImage: `url(${getChampionSplashUrl(match.champion)})` }}
                     />
                     <div className="wr-matchContent">
                       <div>
