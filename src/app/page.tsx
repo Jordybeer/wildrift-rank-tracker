@@ -1,7 +1,9 @@
-"use client";
+'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import LoginPage from '@/components/LoginPage';
+import type { User } from '@supabase/supabase-js';
 
 type Match = {
   champion: string;
@@ -160,6 +162,9 @@ function StatStepper({ label, value, onChange }: { label: string; value: number;
 function generateSessionId() { return crypto.randomUUID(); }
 
 function buildPrompt(match: Match): string {
+  const csPerMin = match.cs_at_10 && match.game_duration ? (match.cs_at_10 / match.game_duration).toFixed(1) : null;
+  const goldPerMin = match.gold_earned && match.game_duration ? ((match.gold_earned * 1000) / match.game_duration).toFixed(0) : null;
+
   return `You are a Diamond-level Wild Rift coach. Analyze this ADC match and provide:
 1. **Performance Summary**: Overall assessment (2-3 sentences)
 2. **Strengths**: What went well (bullet points)
@@ -170,8 +175,8 @@ Match data:
 - Champion: ${match.champion}
 - Result: ${match.win ? 'Victory' : 'Defeat'}
 - KDA: ${match.k_d_a}${match.kill_participation != null ? `\n- Kill participation: ${match.kill_participation}%` : ''}${match.performance_grade ? `\n- Grade: ${match.performance_grade}` : ''}${!match.win && match.loss_reason ? `\n- Loss reason: ${match.loss_reason}` : ''}
-- Duration: ${match.game_duration ? `${match.game_duration} minutes` : 'not recorded'}
-- Rank: ${RANK_TIERS.find(t => t.value === match.rank_tier)?.label}${match.my_support ? `\n- My support: ${match.my_support}` : ''}${match.enemy_adc || match.enemy_support ? `\n- Enemy lane: ${match.enemy_adc || '?'} + ${match.enemy_support || '?'}` : ''}${match.first_blood !== null && match.first_blood !== undefined ? `\n- First blood: ${match.first_blood ? 'Got it' : 'Gave it away'}` : ''}${match.turret_kills ? `\n- Turrets: ${match.turret_kills}` : ''}${match.vision_score ? `\n- Vision score: ${match.vision_score}` : ''}${match.cs_at_10 ? `\n- CS at 10 min: ${match.cs_at_10}` : ''}${match.gold_earned ? `\n- Gold earned: ${match.gold_earned}k` : ''}${match.damage_dealt ? `\n- Damage dealt: ${match.damage_dealt}k` : ''}${match.damage_taken ? `\n- Damage taken: ${match.damage_taken}k` : ''}${match.dragons_taken ? `\n- Dragons: ${match.dragons_taken}` : ''}${match.barons_taken ? `\n- Barons: ${match.barons_taken}` : ''}${match.heralds_taken ? `\n- Heralds: ${match.heralds_taken}` : ''}${match.premade_with ? `\n- Playing with: ${match.premade_with}` : ''}${match.notes ? `\n- Player notes: ${match.notes}` : ''}
+- Duration: ${match.game_duration ? `${match.game_duration} minutes` : 'not recorded'}${match.cs_at_10 ? `\n- Total CS: ${match.cs_at_10}` : ''}${csPerMin ? ` (${csPerMin} CS/min)` : ''}${goldPerMin ? `\n- Gold per minute: ${goldPerMin}` : ''}
+- Rank: ${RANK_TIERS.find(t => t.value === match.rank_tier)?.label}${match.my_support ? `\n- My support: ${match.my_support}` : ''}${match.enemy_adc || match.enemy_support ? `\n- Enemy lane: ${match.enemy_adc || '?'} + ${match.enemy_support || '?'}` : ''}${match.first_blood !== null && match.first_blood !== undefined ? `\n- First blood: ${match.first_blood ? 'Got it' : 'Gave it away'}` : ''}${match.turret_kills ? `\n- Turrets: ${match.turret_kills}` : ''}${match.vision_score ? `\n- Vision score: ${match.vision_score}` : ''}${match.damage_dealt ? `\n- Damage dealt: ${match.damage_dealt}k` : ''}${match.damage_taken ? `\n- Damage taken: ${match.damage_taken}k` : ''}${match.dragons_taken ? `\n- Dragons: ${match.dragons_taken}` : ''}${match.barons_taken ? `\n- Barons: ${match.barons_taken}` : ''}${match.heralds_taken ? `\n- Heralds: ${match.heralds_taken}` : ''}${match.premade_with ? `\n- Playing with: ${match.premade_with}` : ''}${match.notes ? `\n- Player notes: ${match.notes}` : ''}
 
 Provide honest, constructive feedback focused on improvement.`;
 }
@@ -204,6 +209,13 @@ function buildBatchPrompt(matches: Match[], count: number | 'all'): string {
   const fbRate = fbMatches.length
     ? Math.round((fbMatches.filter(m => m.first_blood).length / fbMatches.length) * 100)
     : null;
+
+  const csMatches = selected.filter(m => m.cs_at_10 && m.game_duration);
+  const avgCS = csMatches.length ? Math.round(csMatches.reduce((s, m) => s + (m.cs_at_10 || 0), 0) / csMatches.length) : null;
+  const avgCSPerMin = csMatches.length ? (csMatches.reduce((s, m) => s + ((m.cs_at_10 || 0) / (m.game_duration || 1)), 0) / csMatches.length).toFixed(1) : null;
+
+  const goldMatches = selected.filter(m => m.gold_earned && m.game_duration);
+  const avgGPM = goldMatches.length ? Math.round(goldMatches.reduce((s, m) => s + ((m.gold_earned! * 1000) / (m.game_duration || 1)), 0) / goldMatches.length) : null;
 
   const champMap = new Map<string, { wins: number; total: number }>();
   selected.forEach(m => {
@@ -243,6 +255,8 @@ function buildBatchPrompt(matches: Match[], count: number | 'all'): string {
   const dateTo = new Date(selected[selected.length - 1].created_at).toLocaleDateString();
 
   const matchLines = [...selected].reverse().map((m, i) => {
+    const cspm = m.cs_at_10 && m.game_duration ? (m.cs_at_10 / m.game_duration).toFixed(1) : null;
+    const gpm = m.gold_earned && m.game_duration ? ((m.gold_earned * 1000) / m.game_duration).toFixed(0) : null;
     const parts = [
       `G${i + 1}`,
       m.champion,
@@ -250,6 +264,8 @@ function buildBatchPrompt(matches: Match[], count: number | 'all'): string {
       m.k_d_a + (m.kill_participation ? ` KP${m.kill_participation}%` : ''),
       m.performance_grade || '',
       m.game_duration ? `${m.game_duration}m` : '',
+      cspm ? `${cspm}CS/m` : '',
+      gpm ? `${gpm}GPM` : '',
       m.my_support ? `w/${m.my_support}` : '',
       (m.enemy_adc || m.enemy_support) ? `vs ${m.enemy_adc || '?'}+${m.enemy_support || '?'}` : '',
       !m.win && m.loss_reason ? `[${m.loss_reason}]` : '',
@@ -268,7 +284,7 @@ function buildBatchPrompt(matches: Match[], count: number | 'all'): string {
 
 AGGREGATE STATS (${selected.length} games — ${dateFrom} to ${dateTo}):
 • Record: ${wins}W–${losses}L (${wr}% WR)${streakLabel}
-• Avg KDA: ${avgK}/${avgD}/${avgA} (${kdaRatio} ratio)${avgKP !== null ? `  |  Avg KP: ${avgKP}%` : ''}${avgDur !== null ? `  |  Avg duration: ${avgDur}m` : ''}${fbRate !== null ? `  |  First blood rate: ${fbRate}%` : ''}
+• Avg KDA: ${avgK}/${avgD}/${avgA} (${kdaRatio} ratio)${avgKP !== null ? `  |  Avg KP: ${avgKP}%` : ''}${avgDur !== null ? `  |  Avg duration: ${avgDur}m` : ''}${fbRate !== null ? `  |  First blood rate: ${fbRate}%` : ''}${avgCS !== null && avgCSPerMin ? `\n• Avg CS: ${avgCS} (${avgCSPerMin} CS/min)` : ''}${avgGPM ? `  |  Avg GPM: ${avgGPM}` : ''}
 • Champions: ${champBreakdown}${gradeBreakdown ? `\n• Grades: ${gradeBreakdown}` : ''}${lrBreakdown ? `\n• Loss causes: ${lrBreakdown}` : ''}
 
 MATCH LOG (most recent → oldest):
@@ -278,6 +294,8 @@ Focus on patterns across games, not individual match breakdowns.`;
 }
 
 export default function Dashboard() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [matches, setMatches] = useState<Match[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState('');
@@ -307,24 +325,31 @@ export default function Dashboard() {
   const [turretKills, setTurretKills] = useState(0);
   const [visionScore, setVisionScore] = useState(0);
   const [premadeWith, setPremadeWith] = useState('');
+  const [totalCS, setTotalCS] = useState(0);
   const [goldEarned, setGoldEarned] = useState(0);
   const [damageDealt, setDamageDealt] = useState(0);
   const [damageTaken, setDamageTaken] = useState(0);
-  const [csAt10, setCsAt10] = useState(0);
   const [dragonsTaken, setDragonsTaken] = useState(0);
   const [baronsTaken, setBaronsTaken] = useState(0);
   const [heraldsTaken, setHeraldsTaken] = useState(0);
   const [notes, setNotes] = useState('');
 
-  useEffect(() => { fetchMatches(); }, []);
-
-  const batchCount = useMemo(() => {
-    if (matches.length >= 10) return 10;
-    if (matches.length >= 5) return 5;
-    return 'all' as const;
-  }, [matches.length]);
-
   const [selectedBatchCount, setSelectedBatchCount] = useState<5 | 10 | 20 | 'all'>(10);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => { if (user) fetchMatches(); }, [user]);
 
   const stats = useMemo(() => {
     const totalMatches = matches.length;
@@ -375,6 +400,10 @@ export default function Dashboard() {
       setCurrentMarks(latest.marks_in_division);
       if (latest.session_id) setSessionId(latest.session_id);
     }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
   };
 
   const handleStartSession = () => {
@@ -428,6 +457,7 @@ export default function Dashboard() {
       }
       const kdaNorm = `${kills}/${deaths}/${assists}`;
       const { error } = await supabase.from('matches').insert([{
+        user_id: user?.id,
         champion, role: 'adc', win,
         k_d_a: kdaNorm,
         kill_participation: killParticipation || null,
@@ -438,8 +468,8 @@ export default function Dashboard() {
         enemy_top: enemyTop || null, enemy_jungle: enemyJungle || null, enemy_mid: enemyMid || null,
         session_id: sessionId, game_duration: gameDuration || null, first_blood: firstBlood,
         turret_kills: turretKills || null, vision_score: visionScore || null, premade_with: premadeWith || null,
+        cs_at_10: totalCS || null,
         gold_earned: goldEarned || null, damage_dealt: damageDealt || null, damage_taken: damageTaken || null,
-        cs_at_10: csAt10 || null,
         dragons_taken: dragonsTaken || null, barons_taken: baronsTaken || null, heralds_taken: heraldsTaken || null,
         notes: notes || null,
       }]);
@@ -450,8 +480,8 @@ export default function Dashboard() {
       setChampion(''); setWin(true); setKills(0); setDeaths(0); setAssists(0);
       setKillParticipation(0); setPerformanceGrade(''); setLossReason('');
       setMySupport(''); setEnemyAdc(''); setEnemySupport(''); setEnemyTop(''); setEnemyJungle(''); setEnemyMid('');
-      setGameDuration(0); setFirstBlood(null); setTurretKills(0); setVisionScore(0);
-      setGoldEarned(0); setDamageDealt(0); setDamageTaken(0); setCsAt10(0);
+      setGameDuration(0); setFirstBlood(null); setTurretKills(0); setVisionScore(0); setTotalCS(0);
+      setGoldEarned(0); setDamageDealt(0); setDamageTaken(0);
       setDragonsTaken(0); setBaronsTaken(0); setHeraldsTaken(0); setNotes('');
       await fetchMatches();
     } catch (err: any) {
@@ -460,6 +490,18 @@ export default function Dashboard() {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="wr-loadingShell">
+        <div className="wr-spinner" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
 
   const maxMarks = getMaxMarks(currentRank);
 
@@ -488,6 +530,7 @@ export default function Dashboard() {
             <span className="wr-sessionRecord">{stats.sessionWins}W – {stats.sessionLosses}L</span>
           </div>
         )}
+        <button onClick={handleSignOut} className="wr-signOutButton">Sign out</button>
       </section>
 
       <section className="wr-card">
@@ -604,7 +647,7 @@ export default function Dashboard() {
               <div className="wr-stepperGrid">
                 <StatStepper label="Turrets" value={turretKills} onChange={setTurretKills} />
                 <StatStepper label="Vision" value={visionScore} onChange={setVisionScore} />
-                <StatStepper label="CS@10" value={csAt10} onChange={setCsAt10} />
+                <StatStepper label="Total CS" value={totalCS} onChange={setTotalCS} />
               </div>
               <div className="wr-stepperGrid">
                 <StatStepper label="Dragons" value={dragonsTaken} onChange={setDragonsTaken} />

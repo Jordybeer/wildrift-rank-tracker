@@ -1,25 +1,26 @@
-import './globals.css'
+import './globals.css';
 
 export const metadata = {
   title: 'Wild Rift Tracker',
-  description: 'Track your Wild Rift ADC rank progression and get AI coaching insights.',
+  description: 'Track your Wild Rift rank progression and get AI coaching insights for bot lane.',
   manifest: '/manifest.json',
-  themeColor: '#60a5fa',
+  themeColor: '#0b1220',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'WR Tracker',
   },
-}
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module" async />
       </head>
       <body>{children}</body>
     </html>
-  )
+  );
 }
