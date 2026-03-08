@@ -322,10 +322,10 @@ button {
 
 .wr-statCard,
 .wr-card {
-  border: 1px solid var(--wr-border);
+  border: 2px solid var(--wr-border);
   background: var(--wr-surface);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   box-shadow: var(--wr-shadow);
 }
 
