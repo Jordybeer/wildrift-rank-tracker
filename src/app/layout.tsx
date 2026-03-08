@@ -8,7 +8,7 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'WR Tracker',
+    title: 'Wild Rift Tracker',
   },
 };
 
@@ -17,8 +17,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module" async />
+        <link rel="icon" href="/wr-logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/wr-logo.png" />
       </head>
       <body>{children}</body>
     </html>

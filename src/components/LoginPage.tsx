@@ -33,10 +33,10 @@ export default function LoginPage() {
         <div className="wr-loginCard">
           <div className="wr-loginBadge">Performance Tracker</div>
           
-          {/* WR flame badge */}
+          {/* WR flame logo */}
           <div className="wr-logoWrap">
             <Image
-              src="/wr-badge.png"
+              src="/wr-logo.png"
               alt="Wild Rift"
               width={200}
               height={200}
