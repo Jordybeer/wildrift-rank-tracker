@@ -138,6 +138,44 @@ button {
   gap: 16px;
 }
 
+/* WR Logo with floating animation */
+.wr-logoWrapper {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: logoFloat 4s ease-in-out infinite;
+  filter: drop-shadow(0 12px 36px rgba(251, 146, 60, 0.5));
+}
+
+@keyframes logoFloat {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+    filter: drop-shadow(0 12px 36px rgba(251, 146, 60, 0.5));
+  }
+  50% { 
+    transform: translateY(-12px) rotate(3deg); 
+    filter: drop-shadow(0 20px 48px rgba(251, 146, 60, 0.7));
+  }
+}
+
+.wr-logoImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: logoGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes logoGlow {
+  from { 
+    opacity: 0.9;
+  }
+  to { 
+    opacity: 1;
+  }
+}
+
 .wr-logoIcon {
   width: 88px;
   height: 88px;
@@ -235,6 +273,11 @@ button {
 
   .wr-logoSection {
     margin-bottom: 40px;
+  }
+
+  .wr-logoWrapper {
+    width: 96px;
+    height: 96px;
   }
 
   .wr-logoIcon {
