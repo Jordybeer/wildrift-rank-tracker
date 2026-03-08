@@ -1,5 +1,6 @@
 'use client';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 import { useState } from 'react';
 
 export default function LoginPage() {
@@ -27,9 +28,11 @@ export default function LoginPage() {
 
       <div className="wr-loginContent">
         <div className="wr-loginCard">
-          {/* Logo Section with proper spacing */}
+          {/* Logo Section with floating animated WR logo */}
           <div className="wr-logoSection">
-            <div className="wr-logoIcon">🎮</div>
+            <div className="wr-logoWrapper">
+              <img src="/wr-logo.png" alt="Wild Rift Logo" className="wr-logoImage" />
+            </div>
             <h1 className="wr-loginTitle">Wild Rift Tracker</h1>
             <p className="wr-loginSubtitle">Track your ADC climb to Diamond+</p>
           </div>
