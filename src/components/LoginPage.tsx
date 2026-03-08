@@ -1,7 +1,6 @@
 'use client';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
-import Image from 'next/image';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -33,14 +32,11 @@ export default function LoginPage() {
         <div className="wr-loginCard">
           <div className="wr-loginBadge">Performance Tracker</div>
           
-          {/* WR flame logo */}
+          {/* WR flame badge */}
           <div className="wr-logoWrap">
-            <Image
-              src="/wr-logo.png"
+            <img
+              src="https://i.ibb.co/Y2qYRJv/Photoroom-20260307-192044.jpg"
               alt="Wild Rift"
-              width={200}
-              height={200}
-              priority
               className="wr-logo"
             />
           </div>
