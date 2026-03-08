@@ -68,33 +68,33 @@ const MID_CHAMPIONS = [
 ];
 
 const RANK_TIERS = [
-  { value: 'IRON_IV', label: 'Iron IV', marks: 5 },
-  { value: 'IRON_III', label: 'Iron III', marks: 5 },
-  { value: 'IRON_II', label: 'Iron II', marks: 5 },
-  { value: 'IRON_I', label: 'Iron I', marks: 5 },
-  { value: 'BRONZE_IV', label: 'Bronze IV', marks: 5 },
-  { value: 'BRONZE_III', label: 'Bronze III', marks: 5 },
-  { value: 'BRONZE_II', label: 'Bronze II', marks: 5 },
-  { value: 'BRONZE_I', label: 'Bronze I', marks: 5 },
-  { value: 'SILVER_IV', label: 'Silver IV', marks: 5 },
-  { value: 'SILVER_III', label: 'Silver III', marks: 5 },
-  { value: 'SILVER_II', label: 'Silver II', marks: 5 },
-  { value: 'SILVER_I', label: 'Silver I', marks: 5 },
-  { value: 'GOLD_IV', label: 'Gold IV', marks: 5 },
-  { value: 'GOLD_III', label: 'Gold III', marks: 5 },
-  { value: 'GOLD_II', label: 'Gold II', marks: 5 },
-  { value: 'GOLD_I', label: 'Gold I', marks: 5 },
-  { value: 'EMERALD_IV', label: 'Emerald IV', marks: 5 },
-  { value: 'EMERALD_III', label: 'Emerald III', marks: 5 },
-  { value: 'EMERALD_II', label: 'Emerald II', marks: 5 },
-  { value: 'EMERALD_I', label: 'Emerald I', marks: 5 },
-  { value: 'DIAMOND_IV', label: 'Diamond IV', marks: 6 },
-  { value: 'DIAMOND_III', label: 'Diamond III', marks: 6 },
-  { value: 'DIAMOND_II', label: 'Diamond II', marks: 6 },
-  { value: 'DIAMOND_I', label: 'Diamond I', marks: 6 },
-  { value: 'MASTER', label: 'Master', marks: 8 },
-  { value: 'GRANDMASTER', label: 'Grandmaster', marks: 8 },
-  { value: 'CHALLENGER', label: 'Challenger', marks: 8 },
+  { value: 'IRON_IV', label: 'Iron IV', shortLabel: 'Iron IV', marks: 5, emoji: '⚙️' },
+  { value: 'IRON_III', label: 'Iron III', shortLabel: 'Iron III', marks: 5, emoji: '⚙️' },
+  { value: 'IRON_II', label: 'Iron II', shortLabel: 'Iron II', marks: 5, emoji: '⚙️' },
+  { value: 'IRON_I', label: 'Iron I', shortLabel: 'Iron I', marks: 5, emoji: '⚙️' },
+  { value: 'BRONZE_IV', label: 'Bronze IV', shortLabel: 'Bronze IV', marks: 5, emoji: '🥉' },
+  { value: 'BRONZE_III', label: 'Bronze III', shortLabel: 'Bronze III', marks: 5, emoji: '🥉' },
+  { value: 'BRONZE_II', label: 'Bronze II', shortLabel: 'Bronze II', marks: 5, emoji: '🥉' },
+  { value: 'BRONZE_I', label: 'Bronze I', shortLabel: 'Bronze I', marks: 5, emoji: '🥉' },
+  { value: 'SILVER_IV', label: 'Silver IV', shortLabel: 'Silver IV', marks: 5, emoji: '🥈' },
+  { value: 'SILVER_III', label: 'Silver III', shortLabel: 'Silver III', marks: 5, emoji: '🥈' },
+  { value: 'SILVER_II', label: 'Silver II', shortLabel: 'Silver II', marks: 5, emoji: '🥈' },
+  { value: 'SILVER_I', label: 'Silver I', shortLabel: 'Silver I', marks: 5, emoji: '🥈' },
+  { value: 'GOLD_IV', label: 'Gold IV', shortLabel: 'Gold IV', marks: 5, emoji: '🥇' },
+  { value: 'GOLD_III', label: 'Gold III', shortLabel: 'Gold III', marks: 5, emoji: '🥇' },
+  { value: 'GOLD_II', label: 'Gold II', shortLabel: 'Gold II', marks: 5, emoji: '🥇' },
+  { value: 'GOLD_I', label: 'Gold I', shortLabel: 'Gold I', marks: 5, emoji: '🥇' },
+  { value: 'EMERALD_IV', label: 'Emerald IV', shortLabel: 'Emerald IV', marks: 5, emoji: '💎' },
+  { value: 'EMERALD_III', label: 'Emerald III', shortLabel: 'Emerald III', marks: 5, emoji: '💎' },
+  { value: 'EMERALD_II', label: 'Emerald II', shortLabel: 'Emerald II', marks: 5, emoji: '💎' },
+  { value: 'EMERALD_I', label: 'Emerald I', shortLabel: 'Emerald I', marks: 5, emoji: '💎' },
+  { value: 'DIAMOND_IV', label: 'Diamond IV', shortLabel: 'Diamond IV', marks: 6, emoji: '💎' },
+  { value: 'DIAMOND_III', label: 'Diamond III', shortLabel: 'Diamond III', marks: 6, emoji: '💎' },
+  { value: 'DIAMOND_II', label: 'Diamond II', shortLabel: 'Diamond II', marks: 6, emoji: '💎' },
+  { value: 'DIAMOND_I', label: 'Diamond I', shortLabel: 'Diamond I', marks: 6, emoji: '💎' },
+  { value: 'MASTER', label: 'Master', shortLabel: 'Master', marks: 8, emoji: '👑' },
+  { value: 'GRANDMASTER', label: 'Grandmaster', shortLabel: 'GM', marks: 8, emoji: '👑' },
+  { value: 'CHALLENGER', label: 'Challenger', shortLabel: 'Chall', marks: 8, emoji: '🏆' },
 ];
 
 const GRADE_OPTIONS = [
@@ -601,6 +601,7 @@ export default function Dashboard() {
   }
 
   const maxMarks = getMaxMarks(currentRank);
+  const currentTierData = RANK_TIERS.find(t => t.value === currentRank);
 
   return (
     <main className="wr-shell">
@@ -621,7 +622,7 @@ export default function Dashboard() {
             <span className="wr-statLabel">Current rank</span>
             <strong className="wr-rankDisplay">
               {RANK_TIERS.find((t) => t.value === currentRank)?.label}
-              <span className="wr-marksDisplay">{currentMarks}/{maxMarks}</span>
+              <span className="wr-marksDisplay">{currentTierData?.emoji} {currentMarks}/{maxMarks}</span>
             </strong>
           </div>
         </div>
@@ -971,9 +972,30 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={matches}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#263041" opacity={0.35} />
-                  <XAxis dataKey="created_at" tickFormatter={(str) => new Date(str).toLocaleDateString()} stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, color: '#e2e8f0' }} />
+                  <XAxis 
+                    dataKey="created_at" 
+                    tickFormatter={(str) => new Date(str).toLocaleDateString()} 
+                    stroke="#94a3b8" 
+                  />
+                  <YAxis 
+                    stroke="#94a3b8" 
+                    tickFormatter={(value) => {
+                      const tier = RANK_TIERS[Math.floor(value)];
+                      return tier ? tier.shortLabel : '';
+                    }}
+                    domain={[0, RANK_TIERS.length - 1]}
+                    ticks={RANK_TIERS.map((_, i) => i)}
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, color: '#e2e8f0' }}
+                    labelFormatter={(str) => new Date(str).toLocaleString()}
+                    formatter={(value: any) => {
+                      const tierIndex = Math.floor(value);
+                      const tier = RANK_TIERS[tierIndex];
+                      const marks = Math.round((value - tierIndex) * (tier?.marks || 5));
+                      return [`${tier?.emoji} ${marks}/${tier?.marks}`, tier?.label];
+                    }}
+                  />
                   <Line type="monotone" dataKey="rankProgress" stroke="#60a5fa" strokeWidth={3} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -1088,71 +1110,74 @@ export default function Dashboard() {
 
           <div className="wr-historyList">
             {matches.length === 0 ? <div className="wr-emptyState">No matches logged yet.</div> : (
-              reversedMatches.map((match, index) => (
-                <article key={index} className={`wr-matchCard ${match.win ? 'is-win' : 'is-loss'}`}>
-                  <div className="wr-championBanner" style={{ backgroundImage: `url(${getChampionSplashUrl(match.champion)})` }} />
-                  <div className="wr-matchContent">
-                    <div className="wr-matchLeft">
-                      <div className="wr-matchTop">
-                        <strong>{match.champion}</strong>
-                        <span className="wr-roleTag">ADC</span>
-                        {match.game_duration && <span className="wr-durationTag">{match.game_duration}m</span>}
-                        {match.performance_grade && (
-                          <span className={`wr-gradeBadge ${
-                            match.performance_grade === 'MVP' ? 'is-mvp'
-                            : match.performance_grade === 'SVP' ? 'is-svp'
-                            : match.performance_grade === 'S' ? 'is-s' : 'is-a'
-                          }`}>{match.performance_grade}</span>
+              reversedMatches.map((match, index) => {
+                const matchTierData = RANK_TIERS.find(t => t.value === match.rank_tier);
+                return (
+                  <article key={index} className={`wr-matchCard ${match.win ? 'is-win' : 'is-loss'}`}>
+                    <div className="wr-championBanner" style={{ backgroundImage: `url(${getChampionSplashUrl(match.champion)})` }} />
+                    <div className="wr-matchContent">
+                      <div className="wr-matchLeft">
+                        <div className="wr-matchTop">
+                          <strong>{match.champion}</strong>
+                          <span className="wr-roleTag">ADC</span>
+                          {match.game_duration && <span className="wr-durationTag">{match.game_duration}m</span>}
+                          {match.performance_grade && (
+                            <span className={`wr-gradeBadge ${
+                              match.performance_grade === 'MVP' ? 'is-mvp'
+                              : match.performance_grade === 'SVP' ? 'is-svp'
+                              : match.performance_grade === 'S' ? 'is-s' : 'is-a'
+                            }`}>{match.performance_grade}</span>
+                          )}
+                        </div>
+                        {match.my_support && (
+                          <div className="wr-matchLane">
+                            w/ {match.my_support}
+                            {(match.enemy_adc || match.enemy_support) && <> vs {match.enemy_adc || '?'} + {match.enemy_support || '?'}</>}
+                          </div>
                         )}
+                        {!match.win && match.loss_reason && (
+                          <div className="wr-lossReasonTag">🟥 {match.loss_reason}</div>
+                        )}
+                        {match.notes && <div className="wr-matchNotes">{match.notes}</div>}
+                        <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
                       </div>
-                      {match.my_support && (
-                        <div className="wr-matchLane">
-                          w/ {match.my_support}
-                          {(match.enemy_adc || match.enemy_support) && <> vs {match.enemy_adc || '?'} + {match.enemy_support || '?'}</>}
+                      <div className="wr-matchRight">
+                        <div className="wr-kda">{match.k_d_a}</div>
+                        {match.kill_participation != null && match.kill_participation > 0 && (
+                          <div className="wr-kpBadge">KP {match.kill_participation}%</div>
+                        )}
+                        {match.first_blood !== null && match.first_blood !== undefined && (
+                          <div className={`wr-firstBlood ${match.first_blood ? 'is-positive' : 'is-negative'}`}>
+                            {match.first_blood ? '🩸 FB' : '💀 Gave FB'}
+                          </div>
+                        )}
+                        <div className="wr-marks">{matchTierData?.emoji} {match.marks_in_division}/{getMaxMarks(match.rank_tier)}</div>
+                        <div className="wr-actionButtons">
+                          <button type="button" onClick={() => openInPerplexity(match)} className="wr-perplexityButton" title="Open in Perplexity">
+                            🤖 Ask AI
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyPrompt(match)}
+                            className={`wr-copyButton ${copiedAt === match.created_at ? 'is-copied' : ''}`}
+                            title="Copy prompt to clipboard"
+                          >
+                            {copiedAt === match.created_at ? '✓ Copied' : '📋 Copy'}
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => match.id && handleDeleteMatch(match.id)} 
+                            className="wr-deleteButton" 
+                            title="Delete match"
+                          >
+                            🗑️
+                          </button>
                         </div>
-                      )}
-                      {!match.win && match.loss_reason && (
-                        <div className="wr-lossReasonTag">🟥 {match.loss_reason}</div>
-                      )}
-                      {match.notes && <div className="wr-matchNotes">{match.notes}</div>}
-                      <div className="wr-matchMeta">{new Date(match.created_at).toLocaleString()}</div>
-                    </div>
-                    <div className="wr-matchRight">
-                      <div className="wr-kda">{match.k_d_a}</div>
-                      {match.kill_participation != null && match.kill_participation > 0 && (
-                        <div className="wr-kpBadge">KP {match.kill_participation}%</div>
-                      )}
-                      {match.first_blood !== null && match.first_blood !== undefined && (
-                        <div className={`wr-firstBlood ${match.first_blood ? 'is-positive' : 'is-negative'}`}>
-                          {match.first_blood ? '🩸 FB' : '💀 Gave FB'}
-                        </div>
-                      )}
-                      <div className="wr-marks">{match.marks_in_division}/{getMaxMarks(match.rank_tier)}</div>
-                      <div className="wr-actionButtons">
-                        <button type="button" onClick={() => openInPerplexity(match)} className="wr-perplexityButton" title="Open in Perplexity">
-                          🤖 Ask AI
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => copyPrompt(match)}
-                          className={`wr-copyButton ${copiedAt === match.created_at ? 'is-copied' : ''}`}
-                          title="Copy prompt to clipboard"
-                        >
-                          {copiedAt === match.created_at ? '✓ Copied' : '📋 Copy'}
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => match.id && handleDeleteMatch(match.id)} 
-                          className="wr-deleteButton" 
-                          title="Delete match"
-                        >
-                          🗑️
-                        </button>
                       </div>
                     </div>
-                  </div>
-                </article>
-              ))
+                  </article>
+                );
+              })
             )}
           </div>
         </div>
