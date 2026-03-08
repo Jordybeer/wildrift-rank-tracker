@@ -306,10 +306,35 @@ button {
   color: #e2e8f0;
   font-size: 15px;
   font-weight: 600;
+  gap: 12px;
+}
+
+.wr-sessionLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .wr-sessionRecord {
   font-variant-numeric: tabular-nums;
+}
+
+.wr-stopSessionButton {
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 120ms ease;
+  white-space: nowrap;
+}
+
+.wr-stopSessionButton:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
 }
 
 .wr-statGrid,
@@ -464,6 +489,7 @@ button {
 .wr-secondaryButton,
 .wr-exportButton,
 .wr-signOutButton,
+.wr-banButton,
 .wr-perplexityButton,
 .wr-copyButton,
 .wr-batchCount,
@@ -688,7 +714,8 @@ button {
 .wr-primaryButton,
 .wr-secondaryButton,
 .wr-exportButton,
-.wr-signOutButton {
+.wr-signOutButton,
+.wr-banButton {
   min-height: 56px;
   border-radius: 20px;
   font-size: 17px;
@@ -720,6 +747,15 @@ button {
   color: var(--wr-text);
   font-size: 15px;
   min-height: 48px;
+}
+
+.wr-banButton {
+  background: #ef4444;
+  border: 2px solid #dc2626;
+  color: white;
+  font-size: 15px;
+  min-height: 48px;
+  font-weight: 700;
 }
 
 .wr-primaryButton:disabled {
