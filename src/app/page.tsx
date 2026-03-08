@@ -67,23 +67,8 @@ const MID_CHAMPIONS = [
   'Katarina','Nora','LeBlanc','Lux','Orianna','Syndra','Twisted Fate','Veigar',"Vel'Koz",'Viktor','Yasuo','Zed','Ziggs',
 ];
 
+// EMERALD IV+ ONLY
 const RANK_TIERS = [
-  { value: 'IRON_IV', label: 'Iron IV', shortLabel: 'Iron IV', marks: 5, emoji: '⚙️' },
-  { value: 'IRON_III', label: 'Iron III', shortLabel: 'Iron III', marks: 5, emoji: '⚙️' },
-  { value: 'IRON_II', label: 'Iron II', shortLabel: 'Iron II', marks: 5, emoji: '⚙️' },
-  { value: 'IRON_I', label: 'Iron I', shortLabel: 'Iron I', marks: 5, emoji: '⚙️' },
-  { value: 'BRONZE_IV', label: 'Bronze IV', shortLabel: 'Bronze IV', marks: 5, emoji: '🥉' },
-  { value: 'BRONZE_III', label: 'Bronze III', shortLabel: 'Bronze III', marks: 5, emoji: '🥉' },
-  { value: 'BRONZE_II', label: 'Bronze II', shortLabel: 'Bronze II', marks: 5, emoji: '🥉' },
-  { value: 'BRONZE_I', label: 'Bronze I', shortLabel: 'Bronze I', marks: 5, emoji: '🥉' },
-  { value: 'SILVER_IV', label: 'Silver IV', shortLabel: 'Silver IV', marks: 5, emoji: '🥈' },
-  { value: 'SILVER_III', label: 'Silver III', shortLabel: 'Silver III', marks: 5, emoji: '🥈' },
-  { value: 'SILVER_II', label: 'Silver II', shortLabel: 'Silver II', marks: 5, emoji: '🥈' },
-  { value: 'SILVER_I', label: 'Silver I', shortLabel: 'Silver I', marks: 5, emoji: '🥈' },
-  { value: 'GOLD_IV', label: 'Gold IV', shortLabel: 'Gold IV', marks: 5, emoji: '🥇' },
-  { value: 'GOLD_III', label: 'Gold III', shortLabel: 'Gold III', marks: 5, emoji: '🥇' },
-  { value: 'GOLD_II', label: 'Gold II', shortLabel: 'Gold II', marks: 5, emoji: '🥇' },
-  { value: 'GOLD_I', label: 'Gold I', shortLabel: 'Gold I', marks: 5, emoji: '🥇' },
   { value: 'EMERALD_IV', label: 'Emerald IV', shortLabel: 'Emerald IV', marks: 5, emoji: '💎' },
   { value: 'EMERALD_III', label: 'Emerald III', shortLabel: 'Emerald III', marks: 5, emoji: '💎' },
   { value: 'EMERALD_II', label: 'Emerald II', shortLabel: 'Emerald II', marks: 5, emoji: '💎' },

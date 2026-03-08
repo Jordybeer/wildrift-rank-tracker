@@ -54,7 +54,7 @@ button {
 }
 
 /* ===========================
-   LOGIN PAGE - HEXTECH GLASS
+   LOGIN PAGE - SLEEK & MODERN
    =========================== */
 
 .wr-loginShell {
@@ -98,71 +98,71 @@ button {
   z-index: 1;
   width: 100%;
   max-width: 480px;
+  animation: loginFadeIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes loginFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .wr-loginCard {
   position: relative;
-  padding: 48px 40px;
+  padding: 56px 48px;
   border-radius: 32px;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    0 1px 2px rgba(255, 255, 255, 0.1) inset,
-    0 40px 80px rgba(59, 130, 246, 0.08);
+    0 10px 40px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(255, 255, 255, 0.08) inset,
+    0 50px 100px rgba(59, 130, 246, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  animation: cardFadeIn 0.6s ease-out;
 }
 
-@keyframes cardFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.wr-loginBadge {
-  display: inline-flex;
+.wr-logoSection {
+  margin-bottom: 48px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: rgba(96, 165, 250, 0.12);
-  border: 1px solid rgba(96, 165, 250, 0.25);
-  color: #bfdbfe;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 24px;
+  gap: 16px;
 }
 
-.wr-lottieWrap {
+.wr-logoIcon {
+  width: 88px;
+  height: 88px;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 32px;
+  font-size: 2.5rem;
+  box-shadow: 0 12px 36px rgba(96, 165, 250, 0.4);
+  animation: logoPulse 2.5s ease-in-out infinite;
 }
 
-.wr-loginText {
-  margin-bottom: 32px;
+@keyframes logoPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 12px 36px rgba(96, 165, 250, 0.4); }
+  50% { transform: scale(1.06); box-shadow: 0 16px 48px rgba(96, 165, 250, 0.6); }
 }
 
 .wr-loginTitle {
-  margin: 0 0 12px;
-  font-size: 36px;
+  margin: 0;
+  font-size: 38px;
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1.1;
-  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -171,42 +171,42 @@ button {
 .wr-loginSubtitle {
   margin: 0;
   color: #94a3b8;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
-  max-width: 340px;
+  max-width: 360px;
 }
 
 .wr-githubButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  min-height: 56px;
-  padding: 0 24px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.08);
+  min-height: 60px;
+  padding: 0 28px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.09);
   backdrop-filter: blur(70px);
   -webkit-backdrop-filter: blur(70px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
   color: #ffffff;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 .wr-githubButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(103, 232, 249, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(103, 232, 249, 0.5);
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.3),
-    0 0 32px rgba(103, 232, 249, 0.15);
-  transform: translateY(-2px);
+    0 10px 30px rgba(0, 0, 0, 0.35),
+    0 0 40px rgba(103, 232, 249, 0.2);
+  transform: translateY(-3px);
 }
 
 .wr-githubButton:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(-1px);
 }
 
 .wr-githubButton:disabled {
@@ -215,31 +215,36 @@ button {
 }
 
 .wr-githubIcon {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
 }
 
 .wr-loginFooter {
-  margin: 24px 0 0;
+  margin: 28px 0 0;
   color: #64748b;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
 }
 
 @media (max-width: 560px) {
   .wr-loginCard {
-    padding: 36px 28px;
+    padding: 44px 32px;
     border-radius: 28px;
+  }
+
+  .wr-logoSection {
+    margin-bottom: 40px;
+  }
+
+  .wr-logoIcon {
+    width: 76px;
+    height: 76px;
+    font-size: 2rem;
   }
 
   .wr-loginTitle {
     font-size: 32px;
-  }
-
-  .wr-lottieWrap dotlottie-player {
-    width: 200px !important;
-    height: 200px !important;
   }
 }
 
