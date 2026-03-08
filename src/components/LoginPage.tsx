@@ -35,7 +35,7 @@ export default function LoginPage() {
           {/* WR flame badge */}
           <div className="wr-logoWrap">
             <img
-              src="https://i.ibb.co/Y2qYRJv/Photoroom-20260307-192044.jpg"
+              src="https://i.imgur.com/vjsytpC_d.webp?maxwidth=760&fidelity=grand"
               alt="Wild Rift"
               className="wr-logo"
             />
@@ -44,7 +44,7 @@ export default function LoginPage() {
           <div className="wr-loginText">
             <h1 className="wr-loginTitle">Wild Rift Tracker</h1>
             <p className="wr-loginSubtitle">
-              Track ranked progress, analyze matches with AI, and level up your ADC game.
+              Track ranked progress to git gud.
             </p>
           </div>
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
           </button>
 
           <p className="wr-loginFooter">
-            Secure OAuth • Private data • Built for ranked grinders
+            wild rift tracker • up we go! • Built with 💜
           </p>
         </div>
       </div>
