@@ -30,7 +30,12 @@ export default function LoginPage() {
       <div className="wr-loginContent">
         {/* Glassmorphism card */}
         <div className="wr-loginCard">
-          <div className="wr-loginBadge">Performance Tracker</div>
+          <div className="wr-loginText">
+            <h1 className="wr-loginTitle">Wild Rift Tracker</h1>
+            <p className="wr-loginSubtitle">
+              Track ranked progress to git gud.
+            </p>
+          </div>
           
           {/* WR flame badge */}
           <div className="wr-logoWrap">
@@ -40,13 +45,8 @@ export default function LoginPage() {
               className="wr-logo"
             />
           </div>
-
-          <div className="wr-loginText">
-            <h1 className="wr-loginTitle">Wild Rift Tracker</h1>
-            <p className="wr-loginSubtitle">
-              Track ranked progress to git gud.
-            </p>
-          </div>
+         <div className="wr-loginBadge">Performance Tracker</div>
+ 
 
           {/* Glass GitHub button */}
           <button
@@ -61,7 +61,7 @@ export default function LoginPage() {
           </button>
 
           <p className="wr-loginFooter">
-            is only a game, why you have to be mad? • Built with 💜
+            Is only a game, why you have to be mad?
           </p>
         </div>
       </div>
