@@ -45,8 +45,7 @@ export default function LoginPage() {
               className="wr-logo"
             />
           </div>
-         <div className="wr-loginBadge">Performance Tracker</div>
- 
+
 
           {/* Glass GitHub button */}
           <button
