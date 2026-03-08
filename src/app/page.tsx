@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import LoginPage from '@/components/LoginPage';
@@ -302,6 +302,8 @@ export default function Dashboard() {
   const [statusType, setStatusType] = useState<'error' | 'success' | ''>('');
   const [copiedAt, setCopiedAt] = useState<string | null>(null);
   const [batchCopied, setBatchCopied] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [champion, setChampion] = useState('');
   const [win, setWin] = useState(true);
@@ -337,7 +339,6 @@ export default function Dashboard() {
   const [selectedBatchCount, setSelectedBatchCount] = useState<5 | 10 | 20 | 'all'>(10);
 
   useEffect(() => {
-    // Handle OAuth redirect hash
     const hash = window.location.hash;
     if (hash && hash.includes('access_token')) {
       supabase.auth.setSession({
@@ -381,6 +382,19 @@ export default function Dashboard() {
       const current = supportWinRates.get(key) || { wins: 0, total: 0 };
       supportWinRates.set(key, { wins: current.wins + (m.win ? 1 : 0), total: current.total + 1 });
     });
+
+    const enemyAdcWinRates = new Map<string, { wins: number; total: number }>();
+    matches.filter(m => m.enemy_adc).forEach((m) => {
+      const current = enemyAdcWinRates.get(m.enemy_adc!) || { wins: 0, total: 0 };
+      enemyAdcWinRates.set(m.enemy_adc!, { wins: current.wins + (m.win ? 1 : 0), total: current.total + 1 });
+    });
+
+    const enemySupportWinRates = new Map<string, { wins: number; total: number }>();
+    matches.filter(m => m.enemy_support).forEach((m) => {
+      const current = enemySupportWinRates.get(m.enemy_support!) || { wins: 0, total: 0 };
+      enemySupportWinRates.set(m.enemy_support!, { wins: current.wins + (m.win ? 1 : 0), total: current.total + 1 });
+    });
+
     const withEnemy = matches.filter((m) => m.enemy_adc || m.enemy_support);
     const enemyWinRates = new Map<string, { wins: number; total: number }>();
     withEnemy.forEach((m) => {
@@ -388,11 +402,18 @@ export default function Dashboard() {
       const current = enemyWinRates.get(key) || { wins: 0, total: 0 };
       enemyWinRates.set(key, { wins: current.wins + (m.win ? 1 : 0), total: current.total + 1 });
     });
+
     return {
       supportWinRates: Array.from(supportWinRates.entries())
         .map(([name, s]) => ({ name, winRate: Math.round((s.wins / s.total) * 100), games: s.total }))
         .sort((a, b) => b.games - a.games),
       enemyWinRates: Array.from(enemyWinRates.entries())
+        .map(([name, s]) => ({ name, winRate: Math.round((s.wins / s.total) * 100), games: s.total }))
+        .sort((a, b) => b.games - a.games),
+      enemyAdcWinRates: Array.from(enemyAdcWinRates.entries())
+        .map(([name, s]) => ({ name, winRate: Math.round((s.wins / s.total) * 100), games: s.total }))
+        .sort((a, b) => b.games - a.games),
+      enemySupportWinRates: Array.from(enemySupportWinRates.entries())
         .map(([name, s]) => ({ name, winRate: Math.round((s.wins / s.total) * 100), games: s.total }))
         .sort((a, b) => b.games - a.games),
     };
@@ -416,6 +437,39 @@ export default function Dashboard() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (!Array.isArray(data)) {
+        setStatus('Invalid JSON: expected array of matches');
+        setStatusType('error');
+        return;
+      }
+
+      setUploadStatus(`Uploading ${data.length} matches...`);
+
+      for (const match of data) {
+        await supabase.from('matches').insert([{ ...match, user_id: user?.id }]);
+      }
+
+      setUploadStatus('');
+      setStatus(`Successfully imported ${data.length} matches!`);
+      setStatusType('success');
+      await fetchMatches();
+
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (err: any) {
+      setUploadStatus('');
+      setStatus('Failed to parse JSON: ' + err.message);
+      setStatusType('error');
+    }
   };
 
   const handleStartSession = () => {
@@ -542,7 +596,14 @@ export default function Dashboard() {
             <span className="wr-sessionRecord">{stats.sessionWins}W – {stats.sessionLosses}L</span>
           </div>
         )}
-        <button onClick={handleSignOut} className="wr-signOutButton">Sign out</button>
+        <div className="wr-heroActions">
+          <label className="wr-uploadButton">
+            📤 Import JSON
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileUpload} />
+          </label>
+          <button onClick={handleSignOut} className="wr-signOutButton">Sign out</button>
+        </div>
+        {uploadStatus && <div className="wr-message is-success">{uploadStatus}</div>}
       </section>
 
       <section className="wr-card">
@@ -779,6 +840,40 @@ export default function Dashboard() {
           <div className="wr-laneStatsList">
             {laneStats.enemyWinRates.length === 0 ? <div className="wr-emptyState">Log matches with enemy lane data first.</div> : (
               laneStats.enemyWinRates.map((stat) => (
+                <div key={stat.name} className="wr-laneStatRow">
+                  <span className="wr-laneStatName">{stat.name}</span>
+                  <div className="wr-laneStatRight">
+                    <span className="wr-laneStatGames">{stat.games}G</span>
+                    <span className={`wr-laneStatWr ${stat.winRate >= 50 ? 'is-positive' : 'is-negative'}`}>{stat.winRate}%</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="wr-card">
+          <div className="wr-cardHeader compact"><div><h2>Win rate vs enemy ADC</h2><p>Individual enemy ADC matchups.</p></div></div>
+          <div className="wr-laneStatsList">
+            {laneStats.enemyAdcWinRates.length === 0 ? <div className="wr-emptyState">Log matches with enemy ADC data first.</div> : (
+              laneStats.enemyAdcWinRates.map((stat) => (
+                <div key={stat.name} className="wr-laneStatRow">
+                  <span className="wr-laneStatName">{stat.name}</span>
+                  <div className="wr-laneStatRight">
+                    <span className="wr-laneStatGames">{stat.games}G</span>
+                    <span className={`wr-laneStatWr ${stat.winRate >= 50 ? 'is-positive' : 'is-negative'}`}>{stat.winRate}%</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="wr-card">
+          <div className="wr-cardHeader compact"><div><h2>Win rate vs enemy Support</h2><p>Individual enemy Support matchups.</p></div></div>
+          <div className="wr-laneStatsList">
+            {laneStats.enemySupportWinRates.length === 0 ? <div className="wr-emptyState">Log matches with enemy Support data first.</div> : (
+              laneStats.enemySupportWinRates.map((stat) => (
                 <div key={stat.name} className="wr-laneStatRow">
                   <span className="wr-laneStatName">{stat.name}</span>
                   <div className="wr-laneStatRight">
