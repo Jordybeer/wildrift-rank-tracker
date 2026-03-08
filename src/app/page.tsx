@@ -45,7 +45,7 @@ const ADC_CHAMPIONS = [
 ].sort();
 
 const SUPPORT_CHAMPIONS = [
-  'Alistar','Amumu','Bard','Blitzcrank','Brand','Braum','Galio','Janna','Karma','Kennen',
+  'Alistar','Amumu','Bard','Blitzcrank','Brand','Braum','Fiddlesticks','Galio','Janna','Karma','Kennen',
   'Leona','Lulu','Lux','Malphite','Morgana','Nami','Nautilus','Pyke','Rakan','Senna',
   'Seraphine','Sona','Soraka','Tahm Kench','Thresh','Veigar',"Vel'Koz",'Yuumi','Zilean','Zyra',
 ].sort();
@@ -62,7 +62,7 @@ const JUNGLE_CHAMPIONS = [
 
 const MID_CHAMPIONS = [
   'Ahri','Akali','Akshan','Annie','Aurelion Sol','Brand','Cassiopeia','Diana','Fizz','Galio',
-  'Katarina','LeBlanc','Lux','Orianna','Syndra','Twisted Fate','Veigar',"Vel'Koz",'Viktor','Yasuo','Zed','Ziggs',
+  'Katarina','Nora','LeBlanc','Lux','Orianna','Syndra','Twisted Fate','Veigar',"Vel'Koz",'Viktor','Yasuo','Zed','Ziggs',
 ];
 
 const RANK_TIERS = [
