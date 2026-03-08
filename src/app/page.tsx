@@ -146,19 +146,6 @@ function friendlySupabaseMessage(message: string) {
   return message;
 }
 
-function StatStepper({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
-  return (
-    <div className="wr-stepper">
-      <span className="wr-label">{label}</span>
-      <div className="wr-stepperControls">
-        <button type="button" className="wr-stepperButton" onClick={() => onChange(Math.max(0, value - 1))}>−</button>
-        <span className="wr-stepperValue">{value}</span>
-        <button type="button" className="wr-stepperButton" onClick={() => onChange(value + 1)}>+</button>
-      </div>
-    </div>
-  );
-}
-
 function generateSessionId() { return crypto.randomUUID(); }
 
 function buildPrompt(match: Match): string {
@@ -302,8 +289,6 @@ export default function Dashboard() {
   const [statusType, setStatusType] = useState<'error' | 'success' | ''>('');
   const [copiedAt, setCopiedAt] = useState<string | null>(null);
   const [batchCopied, setBatchCopied] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [champion, setChampion] = useState('');
   const [win, setWin] = useState(true);
@@ -439,37 +424,20 @@ export default function Dashboard() {
     await supabase.auth.signOut();
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-
-      if (!Array.isArray(data)) {
-        setStatus('Invalid JSON: expected array of matches');
-        setStatusType('error');
-        return;
-      }
-
-      setUploadStatus(`Uploading ${data.length} matches...`);
-
-      for (const match of data) {
-        await supabase.from('matches').insert([{ ...match, user_id: user?.id }]);
-      }
-
-      setUploadStatus('');
-      setStatus(`Successfully imported ${data.length} matches!`);
-      setStatusType('success');
-      await fetchMatches();
-
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (err: any) {
-      setUploadStatus('');
-      setStatus('Failed to parse JSON: ' + err.message);
-      setStatusType('error');
-    }
+  const handleExportJSON = () => {
+    const dataStr = JSON.stringify(matches, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `wildrift-matches-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setStatus(`Exported ${matches.length} matches`);
+    setStatusType('success');
+    setTimeout(() => { setStatus(''); setStatusType(''); }, 2000);
   };
 
   const handleStartSession = () => {
@@ -597,13 +565,11 @@ export default function Dashboard() {
           </div>
         )}
         <div className="wr-heroActions">
-          <label className="wr-uploadButton">
-            📤 Import JSON
-            <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileUpload} />
-          </label>
+          {matches.length > 0 && (
+            <button onClick={handleExportJSON} className="wr-exportButton">📥 Export JSON</button>
+          )}
           <button onClick={handleSignOut} className="wr-signOutButton">Sign out</button>
         </div>
-        {uploadStatus && <div className="wr-message is-success">{uploadStatus}</div>}
       </section>
 
       <section className="wr-card">
@@ -656,9 +622,39 @@ export default function Dashboard() {
           <div>
             <label className="wr-label">KDA</label>
             <div className="wr-kdaGrid">
-              <StatStepper label="Kills" value={kills} onChange={setKills} />
-              <StatStepper label="Deaths" value={deaths} onChange={setDeaths} />
-              <StatStepper label="Assists" value={assists} onChange={setAssists} />
+              <div>
+                <span className="wr-label">Kills</span>
+                <input type="text" inputMode="numeric" value={kills === 0 ? '' : String(kills)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { setKills(0); return; }
+                    const n = parseInt(v, 10);
+                    if (!isNaN(n) && n >= 0) setKills(n);
+                  }}
+                  placeholder="0" className="wr-input" />
+              </div>
+              <div>
+                <span className="wr-label">Deaths</span>
+                <input type="text" inputMode="numeric" value={deaths === 0 ? '' : String(deaths)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { setDeaths(0); return; }
+                    const n = parseInt(v, 10);
+                    if (!isNaN(n) && n >= 0) setDeaths(n);
+                  }}
+                  placeholder="0" className="wr-input" />
+              </div>
+              <div>
+                <span className="wr-label">Assists</span>
+                <input type="text" inputMode="numeric" value={assists === 0 ? '' : String(assists)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { setAssists(0); return; }
+                    const n = parseInt(v, 10);
+                    if (!isNaN(n) && n >= 0) setAssists(n);
+                  }}
+                  placeholder="0" className="wr-input" />
+              </div>
             </div>
           </div>
 
@@ -708,7 +704,17 @@ export default function Dashboard() {
           <details className="wr-details">
             <summary className="wr-label">Game timing &amp; performance</summary>
             <div className="wr-detailsContent">
-              <StatStepper label="Duration (min)" value={gameDuration} onChange={setGameDuration} />
+              <div>
+                <label className="wr-label">Duration (min)</label>
+                <input type="text" inputMode="numeric" value={gameDuration === 0 ? '' : String(gameDuration)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { setGameDuration(0); return; }
+                    const n = parseInt(v, 10);
+                    if (!isNaN(n) && n >= 0) setGameDuration(n);
+                  }}
+                  placeholder="0" className="wr-input" />
+              </div>
               <div className="wr-segmentWrap">
                 <span className="wr-label">First blood</span>
                 <div className="wr-segment wr-segmentThree">
@@ -717,15 +723,73 @@ export default function Dashboard() {
                   <button type="button" className={`wr-segmentButton ${firstBlood === null ? 'is-selected' : ''}`} onClick={() => setFirstBlood(null)}>—</button>
                 </div>
               </div>
-              <div className="wr-stepperGrid">
-                <StatStepper label="Turrets" value={turretKills} onChange={setTurretKills} />
-                <StatStepper label="Vision" value={visionScore} onChange={setVisionScore} />
-                <StatStepper label="Total CS" value={totalCS} onChange={setTotalCS} />
-              </div>
-              <div className="wr-stepperGrid">
-                <StatStepper label="Dragons" value={dragonsTaken} onChange={setDragonsTaken} />
-                <StatStepper label="Barons" value={baronsTaken} onChange={setBaronsTaken} />
-                <StatStepper label="Heralds" value={heraldsTaken} onChange={setHeraldsTaken} />
+              <div className="wr-compactGrid">
+                <div>
+                  <label className="wr-label">Turrets</label>
+                  <input type="text" inputMode="numeric" value={turretKills === 0 ? '' : String(turretKills)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setTurretKills(0); return; }
+                      const n = parseInt(v, 10);
+                      if (!isNaN(n) && n >= 0) setTurretKills(n);
+                    }}
+                    placeholder="0" className="wr-input" />
+                </div>
+                <div>
+                  <label className="wr-label">Vision</label>
+                  <input type="text" inputMode="numeric" value={visionScore === 0 ? '' : String(visionScore)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setVisionScore(0); return; }
+                      const n = parseInt(v, 10);
+                      if (!isNaN(n) && n >= 0) setVisionScore(n);
+                    }}
+                    placeholder="0" className="wr-input" />
+                </div>
+                <div>
+                  <label className="wr-label">Total CS</label>
+                  <input type="text" inputMode="numeric" value={totalCS === 0 ? '' : String(totalCS)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setTotalCS(0); return; }
+                      const n = parseInt(v, 10);
+                      if (!isNaN(n) && n >= 0) setTotalCS(n);
+                    }}
+                    placeholder="0" className="wr-input" />
+                </div>
+                <div>
+                  <label className="wr-label">Dragons</label>
+                  <input type="text" inputMode="numeric" value={dragonsTaken === 0 ? '' : String(dragonsTaken)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setDragonsTaken(0); return; }
+                      const n = parseInt(v, 10);
+                      if (!isNaN(n) && n >= 0) setDragonsTaken(n);
+                    }}
+                    placeholder="0" className="wr-input" />
+                </div>
+                <div>
+                  <label className="wr-label">Barons</label>
+                  <input type="text" inputMode="numeric" value={baronsTaken === 0 ? '' : String(baronsTaken)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setBaronsTaken(0); return; }
+                      const n = parseInt(v, 10);
+                      if (!isNaN(n) && n >= 0) setBaronsTaken(n);
+                    }}
+                    placeholder="0" className="wr-input" />
+                </div>
+                <div>
+                  <label className="wr-label">Heralds</label>
+                  <input type="text" inputMode="numeric" value={heraldsTaken === 0 ? '' : String(heraldsTaken)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setHeraldsTaken(0); return; }
+                      const n = parseInt(v, 10);
+                      if (!isNaN(n) && n >= 0) setHeraldsTaken(n);
+                    }}
+                    placeholder="0" className="wr-input" />
+                </div>
               </div>
             </div>
           </details>
@@ -733,10 +797,40 @@ export default function Dashboard() {
           <details className="wr-details">
             <summary className="wr-label">Post-game stats (optional)</summary>
             <div className="wr-detailsContent">
-              <div className="wr-stepperGrid">
-                <StatStepper label="Gold (k)" value={goldEarned} onChange={setGoldEarned} />
-                <StatStepper label="Dmg dealt (k)" value={damageDealt} onChange={setDamageDealt} />
-                <StatStepper label="Dmg taken (k)" value={damageTaken} onChange={setDamageTaken} />
+              <div className="wr-compactGrid">
+                <div>
+                  <label className="wr-label">Gold (k)</label>
+                  <input type="text" inputMode="numeric" value={goldEarned === 0 ? '' : String(goldEarned)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setGoldEarned(0); return; }
+                      const n = parseInt(v, 10);
+                      if (!isNaN(n) && n >= 0) setGoldEarned(n);
+                    }}
+                    placeholder="0" className="wr-input" />
+                </div>
+                <div>
+                  <label className="wr-label">Dmg dealt (k)</label>
+                  <input type="text" inputMode="numeric" value={damageDealt === 0 ? '' : String(damageDealt)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setDamageDealt(0); return; }
+                      const n = parseInt(v, 10);
+                      if (!isNaN(n) && n >= 0) setDamageDealt(n);
+                    }}
+                    placeholder="0" className="wr-input" />
+                </div>
+                <div>
+                  <label className="wr-label">Dmg taken (k)</label>
+                  <input type="text" inputMode="numeric" value={damageTaken === 0 ? '' : String(damageTaken)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setDamageTaken(0); return; }
+                      const n = parseInt(v, 10);
+                      if (!isNaN(n) && n >= 0) setDamageTaken(n);
+                    }}
+                    placeholder="0" className="wr-input" />
+                </div>
               </div>
             </div>
           </details>
