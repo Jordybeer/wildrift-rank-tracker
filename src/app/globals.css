@@ -881,6 +881,17 @@ button {
   z-index: 1;
 }
 
+.wr-matchContent::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(137, 137, 137, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  pointer-events: none;
+  z-index: -1;
+}
+
 .wr-matchLeft {
   flex: 1;
   min-width: 0;
