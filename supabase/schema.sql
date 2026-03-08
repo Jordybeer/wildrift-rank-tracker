@@ -1,5 +1,6 @@
 create table public.matches (
   id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade,
   created_at timestamptz default now() not null,
   champion text not null,
   role text,
@@ -24,7 +25,10 @@ create table public.matches (
   damage_dealt integer,
   damage_taken integer,
   cs_at_10 integer,
-  objective_participation integer,
+  kill_participation integer,
+  performance_grade text,
+  loss_reason text,
+  lane_won boolean,
   dragons_taken integer,
   barons_taken integer,
   heralds_taken integer
