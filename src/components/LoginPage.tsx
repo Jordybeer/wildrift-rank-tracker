@@ -40,7 +40,7 @@ export default function LoginPage() {
           {/* WR flame badge */}
           <div className="wr-logoWrap">
             <img
-              src="https://public.boxcloud.com/api/2.0/internal_files/2157593473715/versions/2385200423315/representations/png_paged_2048x2048/content/1.png?access_token=1!b16hnMfSQtOLMeWaBMuyGfEwt9KArTxCd0ojeDz-h5E5HsCJigEQh2923EeS7aJnnlhRvAXvezwNazBPEhm3FiE2p2I9m1sUg3X6UDMUWRzGp1m44hF1QsK_MqOTDyFNcBZxTl7cmbpRVj84QodWrsAvNK0TNiJXH4ZiJhm4pr8_-GGW7CnTXWvZ35JpM7tJxSqOau0vIXaH5wm02lW_4TPElvPZvJPY-0yMRs0pTR3ouDUn22TczGNy0lWG1Bx8GHP_xsAc0J3abzdMp_dZg6JsuLvI8wiAz9uz-5dcR27UGuodgayYIK1tM3eFQ9u02lmSY6jkfqbf3kf1E9YvHPWUvXIYsNaGawLzosz8QEzS3dU_6Qi0wTpccgMP3sZA_3aUle0YVY8z3yxYRNHxV-PxRtBtd0Hm0HzROgiK2c3T4QOU82-9T1dkFd08MWYjXDqzk64pyHyp_uXHFuglAfkNCucinRK-jOWrAO5fZgBIbp3-D78GeHm7AeGP1bkvQNwnasI02OhVLHpAbHr19yfIEl4AI4CoBH1GefSbM62g_6ZkdpjddpFcSgM235j0vJcYzzpMt2Gvi3Ebm0tSmuk3z4WaL7KTPWytW1bcTA0qXrIUDdP_cNXxcDsBJ5dVhOIGOjlMeKPxuzvw6v3hz2uDQDSjJQbywAfdhCFRerCazdHWqrwHqip6hns5mIV4bqK-4f2FR0cnUZ4nt0O7Tpt77War6Lrh-mf_BIcI1IQUaIeWXIpcM1KutuT6TO6za31K3Msjo0gBzP1X7Z8oLGcwnVwIL9Q4wg..&box_client_name=box-content-preview&box_client_version=3.23.0"
+              src="https://i.imgur.com/7NLPUIk.jpeg"
               alt="Wild Rift"
               className="wr-logo"
             />
