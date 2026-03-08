@@ -37,6 +37,7 @@ type Match = {
   heralds_taken?: number;
   notes?: string;
   cumulativeMarks?: number;
+  rankProgress?: number;
 };
 
 const ADC_CHAMPIONS = [
@@ -134,6 +135,17 @@ function getChampionSplashUrl(champion: string): string {
 
 function getMaxMarks(tier: string): number {
   return RANK_TIERS.find((t) => t.value === tier)?.marks || 5;
+}
+
+function getTierIndex(tier: string): number {
+  return RANK_TIERS.findIndex(t => t.value === tier);
+}
+
+function calculateRankProgress(tier: string, marks: number): number {
+  const tierIndex = getTierIndex(tier);
+  if (tierIndex === -1) return 0;
+  const maxMarks = getMaxMarks(tier);
+  return tierIndex + (marks / maxMarks);
 }
 
 function friendlySupabaseMessage(message: string) {
@@ -424,7 +436,10 @@ export default function Dashboard() {
     const { data, error } = await supabase.from('matches').select('*').order('created_at', { ascending: true });
     if (error) { setStatus(friendlySupabaseMessage(error.message)); setStatusType('error'); return; }
     if (data && data.length > 0) {
-      const chartData = data.map((m) => ({ ...m, cumulativeMarks: m.marks_in_division }));
+      const chartData = data.map((m) => ({
+        ...m,
+        rankProgress: calculateRankProgress(m.rank_tier, m.marks_in_division)
+      }));
       setMatches(chartData);
       const latest = data[data.length - 1];
       setCurrentRank(latest.rank_tier);
@@ -456,6 +471,12 @@ export default function Dashboard() {
   const handleStartSession = () => {
     setSessionId(generateSessionId());
     setStatus('New session started!'); setStatusType('success');
+    setTimeout(() => { setStatus(''); setStatusType(''); }, 2000);
+  };
+
+  const handleStopSession = () => {
+    setSessionId(null);
+    setStatus('Session ended!'); setStatusType('success');
     setTimeout(() => { setStatus(''); setStatusType(''); }, 2000);
   };
 
@@ -573,8 +594,11 @@ export default function Dashboard() {
         </div>
         {sessionId && (
           <div className="wr-sessionBanner">
-            <span>🎮 Session active</span>
-            <span className="wr-sessionRecord">{stats.sessionWins}W – {stats.sessionLosses}L</span>
+            <div className="wr-sessionLeft">
+              <span>🎮 Session active</span>
+              <span className="wr-sessionRecord">{stats.sessionWins}W – {stats.sessionLosses}L</span>
+            </div>
+            <button onClick={handleStopSession} className="wr-stopSessionButton">Stop session</button>
           </div>
         )}
         <div className="wr-heroActions">
@@ -908,7 +932,7 @@ export default function Dashboard() {
 
       <section className="wr-grid">
         <div className="wr-card">
-          <div className="wr-cardHeader compact"><div><h2>Mark progression</h2><p>Your mark count over time.</p></div></div>
+          <div className="wr-cardHeader compact"><div><h2>Rank progression</h2><p>Your rank climb over time.</p></div></div>
           <div className="wr-chartWrap">
             {matches.length === 0 ? <div className="wr-emptyState">No matches yet.</div> : (
               <ResponsiveContainer width="100%" height="100%">
@@ -917,7 +941,7 @@ export default function Dashboard() {
                   <XAxis dataKey="created_at" tickFormatter={(str) => new Date(str).toLocaleDateString()} stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" />
                   <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, color: '#e2e8f0' }} />
-                  <Line type="monotone" dataKey="cumulativeMarks" stroke="#60a5fa" strokeWidth={3} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="rankProgress" stroke="#60a5fa" strokeWidth={3} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             )}
