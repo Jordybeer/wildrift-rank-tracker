@@ -35,7 +35,7 @@ export default function LoginPage() {
           {/* Lottie animation */}
           <div className="wr-lottieWrap">
             <dotlottie-player
-              src="https://lottie.host/a01df692-4eb5-4892-abfc-e6d2b77ab39e/DEfRdgjUkl.json"
+              src="https://lottie.host/4bb15ab6-7301-4327-9f1e-03f3f5b6fbc9/T4EW2aDzFe.json"
               background="transparent"
               speed="1"
               style={{ width: '240px', height: '240px' }}
