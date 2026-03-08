@@ -337,6 +337,18 @@ export default function Dashboard() {
   const [selectedBatchCount, setSelectedBatchCount] = useState<5 | 10 | 20 | 'all'>(10);
 
   useEffect(() => {
+    // Handle OAuth redirect hash
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      supabase.auth.setSession({
+        access_token: new URLSearchParams(hash.substring(1)).get('access_token')!,
+        refresh_token: new URLSearchParams(hash.substring(1)).get('refresh_token')!,
+      }).then(() => {
+        window.location.hash = '';
+        window.history.replaceState(null, '', window.location.pathname);
+      });
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
