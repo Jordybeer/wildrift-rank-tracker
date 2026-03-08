@@ -890,9 +890,9 @@ button {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(137, 137, 137, 0.6);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: linear-gradient(135deg, rgba(11, 15, 25, 0.88), rgba(8, 12, 20, 0.92));
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   pointer-events: none;
   z-index: -1;
 }
