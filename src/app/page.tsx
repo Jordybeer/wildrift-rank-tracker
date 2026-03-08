@@ -52,7 +52,7 @@ const SUPPORT_CHAMPIONS = [
 
 const TOP_CHAMPIONS = [
   'Aatrox','Camille','Darius','Fiora','Garen','Gragas','Gwen','Irelia','Jax','Jayce',
-  'Kennen','Malphite','Nasus','Olaf','Pantheon','Renekton','Riven','Sett','Shen','Teemo','Wukong','Yasuo',
+  'Kennen','Malphite','Mundo','Nasus','Olaf','Pantheon','Renekton','Riven','Sett','Shen','Teemo','Wukong','Yasuo',
 ];
 
 const JUNGLE_CHAMPIONS = [
