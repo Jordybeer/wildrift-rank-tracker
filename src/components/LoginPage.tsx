@@ -1,6 +1,7 @@
 'use client';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -32,15 +33,15 @@ export default function LoginPage() {
         <div className="wr-loginCard">
           <div className="wr-loginBadge">Performance Tracker</div>
           
-          {/* Lottie animation */}
-          <div className="wr-lottieWrap">
-            <dotlottie-player
-              src="https://lottie.host/4bb15ab6-7301-4327-9f1e-03f3f5b6fbc9/T4EW2aDzFe.json"
-              background="transparent"
-              speed="1"
-              style={{ width: '240px', height: '240px' }}
-              loop
-              autoplay
+          {/* WR flame badge */}
+          <div className="wr-logoWrap">
+            <Image
+              src="/wr-badge.png"
+              alt="Wild Rift"
+              width={240}
+              height={240}
+              priority
+              className="wr-logo"
             />
           </div>
 
