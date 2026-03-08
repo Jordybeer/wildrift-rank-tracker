@@ -38,8 +38,8 @@ export default function LoginPage() {
             <Image
               src="/wr-badge.png"
               alt="Wild Rift"
-              width={240}
-              height={240}
+              width={200}
+              height={200}
               priority
               className="wr-logo"
             />
