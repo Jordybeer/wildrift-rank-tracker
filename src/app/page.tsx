@@ -42,13 +42,13 @@ type Match = {
 const ADC_CHAMPIONS = [
   'Ashe','Caitlyn','Draven','Ezreal','Jhin','Jinx',"Kai'Sa",'Kalista','Lucian',
   'Miss Fortune','Samira','Sivir','Smolder','Tristana','Twitch','Varus','Vayne','Xayah','Zeri',
-];
+].sort();
 
 const SUPPORT_CHAMPIONS = [
   'Alistar','Amumu','Bard','Blitzcrank','Brand','Braum','Galio','Janna','Karma','Kennen',
   'Leona','Lulu','Lux','Malphite','Morgana','Nami','Nautilus','Pyke','Rakan','Senna',
-  'Seraphine','Sona','Soraka','Tahm Kench','Thresh',"Vel'Koz",'Yuumi','Zilean','Zyra',
-];
+  'Seraphine','Sona','Soraka','Tahm Kench','Thresh','Veigar',"Vel'Koz",'Yuumi','Zilean','Zyra',
+].sort();
 
 const TOP_CHAMPIONS = [
   'Aatrox','Camille','Darius','Fiora','Garen','Gragas','Gwen','Irelia','Jax','Jayce',
@@ -280,6 +280,17 @@ ${matchLines}
 Focus on patterns across games, not individual match breakdowns.`;
 }
 
+function getMostFrequentEnemy(matches: Match[]): string {
+  const enemyCounts = new Map<string, number>();
+  matches.forEach(m => {
+    [m.enemy_adc, m.enemy_support, m.enemy_top, m.enemy_jungle, m.enemy_mid].forEach(champ => {
+      if (champ) enemyCounts.set(champ, (enemyCounts.get(champ) || 0) + 1);
+    });
+  });
+  if (enemyCounts.size === 0) return 'None';
+  return Array.from(enemyCounts.entries()).sort((a, b) => b[1] - a[1])[0][0];
+}
+
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -322,6 +333,8 @@ export default function Dashboard() {
   const [notes, setNotes] = useState('');
 
   const [selectedBatchCount, setSelectedBatchCount] = useState<5 | 10 | 20 | 'all'>(10);
+
+  const banRecommendation = useMemo(() => getMostFrequentEnemy(matches), [matches]);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -569,6 +582,9 @@ export default function Dashboard() {
             <button onClick={handleExportJSON} className="wr-exportButton">📥 Export JSON</button>
           )}
           <button onClick={handleSignOut} className="wr-signOutButton">Sign out</button>
+          {banRecommendation !== 'None' && (
+            <button className="wr-banButton">Ban: {banRecommendation}</button>
+          )}
         </div>
       </section>
 
@@ -598,17 +614,13 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="wr-label">ADC champions</label>
-            <div className="wr-chipGrid">
+            <label className="wr-label">ADC champion</label>
+            <select value={champion} onChange={(e) => setChampion(e.target.value)} className="wr-select" size={8}>
+              <option value="">— Select ADC —</option>
               {ADC_CHAMPIONS.map((name) => (
-                <button key={name} type="button"
-                  className={`wr-chip ${champion === name ? 'is-selected' : ''}`}
-                  onClick={() => setChampion(name)} aria-pressed={champion === name}>
-                  <span className={`wr-check ${champion === name ? 'is-selected' : ''}`}>✓</span>
-                  {name}
-                </button>
+                <option key={name} value={name}>{name}</option>
               ))}
-            </div>
+            </select>
           </div>
 
           <div className="wr-segmentWrap">
