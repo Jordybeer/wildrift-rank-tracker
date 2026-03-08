@@ -6,6 +6,7 @@ import LoginPage from '@/components/LoginPage';
 import type { User } from '@supabase/supabase-js';
 
 type Match = {
+  id?: string | number;
   champion: string;
   role: string;
   win: boolean;
@@ -381,7 +382,20 @@ export default function Dashboard() {
     const currentSessionMatches = sessionId ? matches.filter(m => m.session_id === sessionId) : [];
     const sessionWins = currentSessionMatches.filter(m => m.win).length;
     const sessionLosses = currentSessionMatches.length - sessionWins;
-    return { totalMatches, wins, winRate, sessionWins, sessionLosses };
+
+    let totalK = 0, totalD = 0, totalA = 0;
+    matches.forEach(m => {
+      const parts = m.k_d_a.split('/').map(n => parseInt(n, 10) || 0);
+      totalK += parts[0] ?? 0;
+      totalD += parts[1] ?? 0;
+      totalA += parts[2] ?? 0;
+    });
+    const avgK = totalMatches ? (totalK / totalMatches).toFixed(1) : '0.0';
+    const avgD = totalMatches ? (totalD / totalMatches).toFixed(1) : '0.0';
+    const avgA = totalMatches ? (totalA / totalMatches).toFixed(1) : '0.0';
+    const kdaRatio = totalD > 0 ? ((totalK + totalA) / totalD).toFixed(2) : totalMatches > 0 ? 'Perfect' : '0.00';
+
+    return { totalMatches, wins, winRate, sessionWins, sessionLosses, avgK, avgD, avgA, kdaRatio };
   }, [matches, sessionId]);
 
   const laneStats = useMemo(() => {
@@ -478,6 +492,21 @@ export default function Dashboard() {
     setSessionId(null);
     setStatus('Session ended!'); setStatusType('success');
     setTimeout(() => { setStatus(''); setStatusType(''); }, 2000);
+  };
+
+  const handleDeleteMatch = async (id: string | number) => {
+    if (!window.confirm('Are you sure you want to delete this match? This action cannot be undone.')) return;
+    try {
+      const { error } = await supabase.from('matches').delete().eq('id', id);
+      if (error) throw error;
+      setStatus('Match deleted successfully.');
+      setStatusType('success');
+      setTimeout(() => { setStatus(''); setStatusType(''); }, 2000);
+      await fetchMatches();
+    } catch (err: any) {
+      setStatus(err?.message || 'Error deleting match.');
+      setStatusType('error');
+    }
   };
 
   const openInPerplexity = (match: Match) => {
@@ -584,6 +613,10 @@ export default function Dashboard() {
         <div className="wr-statGrid">
           <div className="wr-statCard"><span className="wr-statLabel">Matches</span><strong>{stats.totalMatches}</strong></div>
           <div className="wr-statCard"><span className="wr-statLabel">Win rate</span><strong>{stats.winRate}%</strong></div>
+          <div className="wr-statCard">
+            <span className="wr-statLabel">Avg KDA</span>
+            <strong>{stats.avgK}/{stats.avgD}/{stats.avgA} <span style={{fontSize: '14px', color: 'var(--wr-subtle)', fontWeight: 'normal'}}>({stats.kdaRatio})</span></strong>
+          </div>
           <div className="wr-statCard">
             <span className="wr-statLabel">Current rank</span>
             <strong className="wr-rankDisplay">
@@ -1106,6 +1139,14 @@ export default function Dashboard() {
                           title="Copy prompt to clipboard"
                         >
                           {copiedAt === match.created_at ? '✓ Copied' : '📋 Copy'}
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => match.id && handleDeleteMatch(match.id)} 
+                          className="wr-deleteButton" 
+                          title="Delete match"
+                        >
+                          🗑️
                         </button>
                       </div>
                     </div>
