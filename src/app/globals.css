@@ -67,7 +67,6 @@ button {
   padding: 20px;
 }
 
-/* Hextech gradient background */
 .wr-loginBg {
   position: fixed;
   inset: 0;
@@ -78,7 +77,6 @@ button {
   z-index: 0;
 }
 
-/* Animated hex pattern overlay */
 .wr-hexPattern {
   position: absolute;
   inset: 0;
@@ -102,7 +100,6 @@ button {
   max-width: 480px;
 }
 
-/* Glassmorphism card */
 .wr-loginCard {
   position: relative;
   padding: 48px 40px;
@@ -179,7 +176,6 @@ button {
   max-width: 340px;
 }
 
-/* Glass GitHub button */
 .wr-githubButton {
   display: flex;
   align-items: center;
@@ -454,13 +450,19 @@ button {
   gap: 12px;
 }
 
+.wr-compactGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .wr-chip,
 .wr-pill,
 .wr-segmentButton,
 .wr-stepperButton,
 .wr-primaryButton,
 .wr-secondaryButton,
-.wr-uploadButton,
+.wr-exportButton,
 .wr-signOutButton,
 .wr-perplexityButton,
 .wr-copyButton,
@@ -685,7 +687,7 @@ button {
 
 .wr-primaryButton,
 .wr-secondaryButton,
-.wr-uploadButton,
+.wr-exportButton,
 .wr-signOutButton {
   min-height: 56px;
   border-radius: 20px;
@@ -705,27 +707,12 @@ button {
   margin-bottom: 18px;
 }
 
-.wr-uploadButton {
+.wr-exportButton {
   background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(22,163,74,0.1));
   border-color: rgba(34,197,94,0.3);
   color: #86efac;
   font-size: 15px;
   min-height: 48px;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 16px;
-}
-
-.wr-uploadButton input[type="file"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
 }
 
 .wr-signOutButton {
@@ -733,7 +720,6 @@ button {
   color: var(--wr-text);
   font-size: 15px;
   min-height: 48px;
-  padding: 0 16px;
 }
 
 .wr-primaryButton:disabled {
