@@ -432,7 +432,14 @@ export default function Dashboard() {
 
   const fetchMatches = async () => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
-    const { data, error } = await supabase.from('matches').select('*').order('created_at', { ascending: true });
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return;
+    const { data, error } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
     if (error) { setStatus(friendlySupabaseMessage(error.message)); setStatusType('error'); return; }
     if (data && data.length > 0) {
       const chartData = data.map((m) => ({
@@ -444,6 +451,8 @@ export default function Dashboard() {
       setCurrentRank(latest.rank_tier);
       setCurrentMarks(latest.marks_in_division);
       if (latest.session_id) setSessionId(latest.session_id);
+    } else {
+      setMatches([]);
     }
   };
 
@@ -482,7 +491,11 @@ export default function Dashboard() {
   const handleDeleteMatch = async (id: string | number) => {
     if (!window.confirm('Are you sure you want to delete this match? This action cannot be undone.')) return;
     try {
-      const { error } = await supabase.from('matches').delete().eq('id', id);
+      const { error } = await supabase
+        .from('matches')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user!.id);
       if (error) throw error;
       setStatus('Match deleted successfully.');
       setStatusType('success');
